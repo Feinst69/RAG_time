@@ -1,0 +1,23 @@
+[project]
+name = "rag-time"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "faiss-cpu>=1.13.2",
+    "langchain>=1.2.15",
+    "langchain-community>=0.4.1",
+    "langchain-huggingface>=1.2.1",
+    "langchain-openai>=1.1.12",
+    "langchain-openrouter>=0.2.1",
+    "pandas",
+    "python-dotenv>=1.2.2",
+    "sentence-transformers>=5.4.1",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.2.0",
+    "notebook>=7.5.5",
+]
