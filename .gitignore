@@ -1,3 +1,10 @@
 /data
+data/
 /.venv
 .env
+qdrant_storage
+
+
+# caches
+*.pyc
+__pycache__/

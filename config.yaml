@@ -1,0 +1,43 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Qdrant RAG – runtime configuration
+# Edit this file to tune the pipeline without touching any Python code.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Qdrant server ────────────────────────────────────────────────────────────
+qdrant:
+  url: http://localhost:6333
+  collection_name: support_tickets
+
+# ── Vector spaces ────────────────────────────────────────────────────────────
+vectors:
+  dense_name: dense
+  sparse_name: sparse
+  # Must match the token-embedding dimension of the dense model below.
+  # mxbai-edge-colbert-v0-17m → 48   |   standard ColBERT models → 128
+  dense_dim: 48
+
+# ── Models ───────────────────────────────────────────────────────────────────
+models:
+  # PyLate ColBERT model used for dense retrieval (mean-pooled token embeddings)
+  dense: mixedbread-ai/mxbai-edge-colbert-v0-17m
+  # fastembed BM25 model for sparse retrieval
+  sparse: Qdrant/bm25
+  # PyLate ColBERT model used for late-interaction reranking (MaxSim)
+  reranker: mixedbread-ai/mxbai-edge-colbert-v0-32m
+
+# ── Retrieval ─────────────────────────────────────────────────────────────────
+retrieval:
+  # Number of candidates fetched from Qdrant before ColBERT reranking.
+  # Higher = better recall, slower reranking.
+  candidates: 100
+  # Final number of results returned to the caller.
+  top_k: 10
+
+# ── Indexing ─────────────────────────────────────────────────────────────────
+indexing:
+  # Rows processed per upsert batch. Reduce if you hit OOM.
+  batch_size: 64
+  # CSV columns concatenated to form the text that is embedded.
+  text_fields:
+    - issue_description
+    - resolution_notes
