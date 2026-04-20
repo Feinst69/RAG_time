@@ -2,3 +2,7 @@
 /.venv
 .env
 *.jsonl
+/reports
+.codex
+*info
+*__pycache__

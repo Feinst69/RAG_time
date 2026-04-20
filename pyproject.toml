@@ -14,6 +14,7 @@ dependencies = [
     "langchain-text-splitters>=1.1.2",
     "torch>=2.9.0,<2.10.0",
     "pylate>=1.4.0",
+    "streamlit>=1.45.1",
     "rag_time",
 ]
 
@@ -42,3 +43,6 @@ include = ["rag_time*", "scripts*"]
 
 [project.scripts]
 rag-embed = "scripts.embed_data:main"
+rag-embed-hg = "scripts.embedding_hg:main"
+rag-search-hybrid = "scripts.search_hybrid:main"
+rag-ui = "scripts.streamlit_app:main"
