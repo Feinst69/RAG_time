@@ -1,9 +1,10 @@
-from qdrant_client import QdrantClient, models as qdrant_models 
+from qdrant_client import QdrantClient, models as qdrant_models
+from pylate import models, rank
 from rag_time.config.settings import settings
 from rag_time.embeddings import EmbeddingsGenerator, SparseEmbeddingsGenerator
-from typing import Any
+from typing import Any, Optional
 
-client = QdrantClient(host="localhost", port=6333)
+client = QdrantClient(settings.qdrant_url)
 embedding_model = EmbeddingsGenerator(settings.embedding_model, max_length=settings.embedding_dimension)
 sparse_embedding_model = SparseEmbeddingsGenerator(settings.sparse_model)
 
@@ -97,6 +98,7 @@ def hybrid_search_tickets(query_text: str, collection_name: str, limit: int = 3)
     )
     return search_result.points
 
+reranker = models.ColBERT(model_name_or_path=settings.reranker_model)
 
 def get_tickets_by_ids(collection_name: str, ids: list):
     return client.retrieve(
@@ -122,26 +124,107 @@ def clean_results(results: list[Any], collection_name: str | None = None):
 
     return cleaned_results
 
-def do_semantic_search(query: str):
-    results = semantic_search_tickets(query, settings.collection_name, limit=settings.top_k*4)
-    return clean_results(results)
+def create_filter(filter: dict):
+    filters = []
+    for key, value in filter.items():
+        filters.append(
+            qdrant_models.FieldCondition(
+                key=key,
+                match=qdrant_models.MatchValue(value=value)
+            )
+        )
+    return qdrant_models.Filter(must=filters)
 
 
-def do_lexical_search(query: str):
-    results =  lexical_search_tickets(query, settings.collection_name, limit=settings.top_k*4)
-    return clean_results(results)
 
-
-def do_hybrid_search(query: str):
-    results =  hybrid_search_tickets(query, settings.collection_name, limit=settings.top_k*4)
-    return clean_results(results)
-
-
-if __name__ == "__main__":
-    query = "Comment réinitialiser mon mot de passe ?"
-    print("Keyword Search Results:")
-    results = sparse_embedding_model.encode_query(query)
-    print(results)
-    results = lexical_search_tickets(query, settings.collection_name, limit=settings.top_k*4)
-    print(results)
+def rag_search(query_text: str, collection_name: str, filter: dict = None, method: str = "hybrid", limit: int = 3) -> dict:
+    if filter:
+        filter = create_filter(filter)
+    limit = limit * 4
+    if method == "semantic":
+        print("Performing semantic search...")  
+        query = embedding_model.encode_query(query_text)
+        results = client.query_points(
+            collection_name=collection_name,
+            query=query,
+            using="vector",
+            query_filter=filter,
+            with_payload=qdrant_models.PayloadSelectorInclude(include=["ref_id", "chunk"]),
+            limit=limit
+        ).points
+        return clean_results(results)
     
+    if method == "lexical":
+        print("Performing lexical search...")
+        query = sparse_embedding_model.encode_query(query_text)
+        results = client.query_points(
+            collection_name=collection_name,
+            query=query,
+            using="sparse-vector",
+            query_filter=filter,
+            with_payload=qdrant_models.PayloadSelectorInclude(include=["ref_id", "chunk"]),
+            limit=limit
+        ).points
+        return clean_results(results)
+    
+    if method == "hybrid":
+        print("Performing hybrid search...")
+        prefetch = []
+        query = embedding_model.encode_query(query_text)
+        prefetch.append(
+            qdrant_models.Prefetch(
+                query=query,
+                using="vector",
+                filter=filter,
+                limit=limit
+            )
+        )
+        
+        query = sparse_embedding_model.encode_query(query_text)
+        prefetch.append(
+            qdrant_models.Prefetch(
+                query=query,
+                using="sparse-vector",
+                filter=filter,
+                limit=limit
+            )
+        )
+    results =  client.query_points(
+        collection_name=collection_name,
+        prefetch=prefetch,
+        query=qdrant_models.FusionQuery(fusion=qdrant_models.Fusion.RRF),
+        with_payload=qdrant_models.PayloadSelectorInclude(include=["ref_id", "chunk"]),
+        limit=limit).points
+    return clean_results(results)
+
+def rerank(query_text: str, results: dict) -> dict:
+    embeded_query = reranker.encode(
+        [query_text],
+        is_query=True,
+    )
+    documents = []
+    documents_ids = []
+
+    for key, val in results.items():
+        documents.append(val["subject"]+" "+val["body"])
+        documents_ids.append(key)
+
+    if not documents:
+        return []
+
+    embeded_documents = reranker.encode(
+        [documents],
+        is_query=False,
+    )
+
+    reranked_documents = rank.rerank(
+        documents_ids=[documents_ids],
+        queries_embeddings=embeded_query,
+        documents_embeddings=embeded_documents,
+    )[0]
+
+    for doc in reranked_documents:
+        results[doc["id"]]["score"] = doc["score"]
+    return sorted(results.items(), key=lambda item: item[1]["score"], reverse=True)
+
+

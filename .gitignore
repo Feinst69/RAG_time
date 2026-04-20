@@ -3,6 +3,7 @@
 .env
 *.jsonl
 qdrant_storage
+hf_cache
 __pycache__
 *egg-info*
 
