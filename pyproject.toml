@@ -11,13 +11,34 @@ dependencies = [
     "langchain-huggingface>=1.2.1",
     "langchain-openai>=1.1.12",
     "langchain-openrouter>=0.2.1",
-    "pandas",
-    "python-dotenv>=1.2.2",
-    "sentence-transformers>=5.4.1",
+    "langchain-text-splitters>=1.1.2",
+    "torch>=2.9.0,<2.10.0",
+    "pylate>=1.4.0",
+    "rag_time",
 ]
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+rag_time = { editable = true, path = "." }
+
 
 [dependency-groups]
 dev = [
     "ipykernel>=7.2.0",
     "notebook>=7.5.5",
 ]
+
+
+[tool.setuptools]
+# On indique que le package 'rag_time' se trouve dans 'src'
+package-dir = {"" = "src", "scripts" = "scripts"}
+
+[tool.setuptools.packages.find]
+# On demande à setuptools de chercher dans ces deux endroits
+where = ["src", "."]
+include = ["rag_time*", "scripts*"]
+
+[project.scripts]
+rag-embed = "scripts.embed_data:main"
