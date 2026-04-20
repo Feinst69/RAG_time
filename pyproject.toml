@@ -15,6 +15,8 @@ dependencies = [
     "torch>=2.9.0,<2.10.0",
     "pylate>=1.4.0",
     "rag_time",
+    "qdrant-client>=1.17.1",
+    "fastembed>=0.8.0",
 ]
 
 [tool.uv]
@@ -42,3 +44,5 @@ include = ["rag_time*", "scripts*"]
 
 [project.scripts]
 rag-embed = "scripts.embed_data:main"
+rag-upload = "scripts.qdrant_upload:main"
+rag-query = "scripts.retrieve:main"

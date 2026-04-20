@@ -1,19 +1,11 @@
 import argparse
-import os
-from rag_time.embeddings import EmbeddingsGenerator, TextSplitter
+from rag_time.embeddings import EmbeddingsGenerator, TextSplitter, SparseEmbeddingsGenerator
 from rag_time.data_loader import DataLoader, Ticket
-from time import time
-
-def chrono(func):
-    def wrapper(*args, **kwargs):
-        elapsed = time()
-        resultat = func(*args, **kwargs)
-        elapsed = time() - elapsed 
-        return resultat, elapsed
-    return wrapper
+from rag_time.config.settings import settings
+from rag_time.decorators import chrono
 
 @chrono
-def handle_ticket(line, splitter, generator):
+def handle_ticket(line, splitter, generator, sparse_generator):
     ticket = Ticket(
                 subject=line.subject,
                 body=line.body,
@@ -25,6 +17,7 @@ def handle_ticket(line, splitter, generator):
                 chunks=splitter.split_text(f"{line.subject}\n{line.body}" if line.subject else line.body)
             )
     ticket.embeddings = generator.generate_embeddings(ticket.chunks)
+    ticket.sparse_embeddings = sparse_generator.generate_vector(ticket.chunks)
     return ticket
 
 def build_rag_data(input_path: str, output_path: str):
@@ -32,9 +25,10 @@ def build_rag_data(input_path: str, output_path: str):
     df = DataLoader(input_path).load()
     df_len = len(df)
     print(f"Loading Embeddings model...")
-    generator  = EmbeddingsGenerator("LiquidAI/LFM2-ColBERT-350M",max_length=128)
+    generator  = EmbeddingsGenerator(settings.embedding_model, max_length=settings.embedding_dimension)
+    sparse_generator = SparseEmbeddingsGenerator(settings.sparse_model)
     print("Loading Text Splitter...")
-    splitter = TextSplitter(chunk_size=512)
+    splitter = TextSplitter(chunk_size=settings.chunk_size)
     with open(output_path, "w") as f:
         current_index = 0
         elapsed = 0.0
@@ -42,7 +36,7 @@ def build_rag_data(input_path: str, output_path: str):
         for line in df.itertuples():
             current_index += 1
             try:
-                ticket, line_elapsed = handle_ticket(line, splitter, generator)
+                ticket, line_elapsed = handle_ticket(line, splitter, generator, sparse_generator)
                 ticket.time = line_elapsed
                 elapsed += line_elapsed
                 print(f"Processed {current_index}/{df_len} tickets...",end="")

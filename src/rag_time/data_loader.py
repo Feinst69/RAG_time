@@ -1,12 +1,12 @@
 """Module pour charger et prétraiter les données de tickets."""
 
+import json
+
 import pandas as pd
 import numpy as np
-from typing import Optional
+from typing import Any, Optional
 from pathlib import Path
-from pydantic import BaseModel, ConfigDict, field_serializer
-
-from rag_time.embeddings import EmbeddingMatrix
+from pydantic import BaseModel, field_serializer
 
 
 class DataLoader:
@@ -64,13 +64,14 @@ class DataLoader:
         result_data.fillna("", inplace=True)
 
         return result_data
+    
+
+
 
 class Ticket(BaseModel):
     """
     Représente un ticket de support avec ses métadonnées et embeddings.
     """
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     subject: str
     body: str 
     answer: str
@@ -79,10 +80,39 @@ class Ticket(BaseModel):
     priority: str
     language: str
     chunks: Optional[list[str]] = []
-    embeddings: Optional[list[EmbeddingMatrix]]=[]
+    embeddings: Optional[list[Any]]=[]
+    sparse_embeddings: Optional[list[Any]]=[]
     time: Optional[float] = 0.0
 
     @field_serializer('embeddings')
-    def serialize_embeddings(self, embs: list[EmbeddingMatrix]):
+    def serialize_embeddings(self, embs: list[Any]):
         return [e.tolist() if isinstance(e, np.ndarray) else e for e in embs]
-    
+
+    @field_serializer('sparse_embeddings')
+    def serialize_sparse_embeddings(self, embs: list[Any]):
+        """Convertit les objets sparse (fastembed/numpy) en dictionnaires compatibles JSON."""
+        if not embs:
+            return []
+        
+        serialized = []
+        for e in embs:
+            # Cas 1 : C'est l'objet SparseEmbedding de fastembed
+            if hasattr(e, "indices") and hasattr(e, "values"):
+                indices = e.indices.tolist() if isinstance(e.indices, np.ndarray) else list(e.indices)
+                values = e.values.tolist() if isinstance(e.values, np.ndarray) else list(e.values)
+                serialized.append({"indices": indices, "values": values})
+            
+            # Cas 2 : C'est un tableau numpy direct (rare pour du sparse mais possible)
+            elif isinstance(e, np.ndarray):
+                serialized.append(e.tolist())
+            
+            # Cas 3 : C'est déjà un format compatible
+            else:
+                serialized.append(e)
+        return serialized
+
+def stream_tickets(file_path: str):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            data = json.loads(line)
+            yield Ticket(**data)
