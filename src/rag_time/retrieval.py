@@ -179,7 +179,6 @@ def rag_search(query_text: str, collection_name: str, filter: dict = None, metho
                 limit=limit
             )
         )
-        
         query = sparse_embedding_model.encode_query(query_text)
         prefetch.append(
             qdrant_models.Prefetch(
@@ -189,13 +188,14 @@ def rag_search(query_text: str, collection_name: str, filter: dict = None, metho
                 limit=limit
             )
         )
-    results =  client.query_points(
-        collection_name=collection_name,
-        prefetch=prefetch,
-        query=qdrant_models.FusionQuery(fusion=qdrant_models.Fusion.RRF),
-        with_payload=qdrant_models.PayloadSelectorInclude(include=["ref_id", "chunk"]),
-        limit=limit).points
-    return clean_results(results)
+        results = client.query_points(
+            collection_name=collection_name,
+            prefetch=prefetch,
+            query=qdrant_models.FusionQuery(fusion=qdrant_models.Fusion.RRF),
+            with_payload=qdrant_models.PayloadSelectorInclude(include=["ref_id", "chunk"]),
+            limit=limit,
+        ).points
+        return clean_results(results)
 
 def rerank(query_text: str, results: dict) -> dict:
     embeded_query = reranker.encode(
@@ -228,3 +228,15 @@ def rerank(query_text: str, results: dict) -> dict:
     return sorted(results.items(), key=lambda item: item[1]["score"], reverse=True)
 
 
+if __name__ == "__main__":
+    import argparse
+    import json
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-q", "--query", required=True)
+    parser.add_argument("-m", "--method", default="hybrid", choices=["semantic", "lexical", "hybrid"])
+    parser.add_argument("-f", "--filter", type=str, default=None)
+    args = parser.parse_args()
+    filter = json.loads(args.filter) if args.filter else None
+    results = rag_search(args.query, settings.collection_name, method=args.method, filter=filter, limit=settings.top_k)
+    for key, val in results.items():
+        print(f"ID: {key}\nScore: {val['score']}\nSujet: {val['subject']}\nQuestion: {val['body']}\nRéponse: {val['answer']}\n{'-'*50}")

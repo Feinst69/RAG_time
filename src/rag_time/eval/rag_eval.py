@@ -123,11 +123,11 @@ def _average_metrics(metrics_list: list[dict]) -> dict[str, float]:
 
 
 def _combo_llm_score(combo: dict) -> float:
-    """Primary ranking score: avg answer_quality across LLM models, or retrieval fallback."""
+    """Primary ranking score: best answer_quality across LLM models, or retrieval fallback."""
     avg_llm = combo.get("avg_llm_metrics", {})
     if avg_llm:
         scores = [m.get("answer_quality", 0.0) for m in avg_llm.values()]
-        return mean(scores) if scores else 0.0
+        return max(scores) if scores else 0.0
     return combo.get("avg_retrieval_metrics", {}).get("relevance_score", 0.0) or 0.0
 
 
