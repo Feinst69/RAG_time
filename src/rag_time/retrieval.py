@@ -100,7 +100,7 @@ def rag_search(query_text: str, collection_name: str, filter: dict|None = None, 
         prefetch=prefetch,
         query=qdrant_models.FusionQuery(fusion=qdrant_models.Fusion.RRF),
         with_payload=qdrant_models.PayloadSelectorInclude(include=["ref_id", "chunk"]),
-        limit=limit)
-    return clean_results(results.points)
+        limit=limit).points
+    return clean_results(results)
 
     

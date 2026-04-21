@@ -10,3 +10,24 @@ services:
     environment:
       - QDRANT__SERVICE__ENABLE_STATIC_CONTENT=1 # Active l'interface Web
       - QDRANT__LOG_LEVEL=INFO
+    networks:
+      - rag-time-net
+
+  fastapi:
+    container_name: search_api
+    build:
+      context: .
+      dockerfile: search_api/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - qdrant
+    networks:
+      - rag-time-net
+networks:
+  rag-time-net:
+    driver: bridge
+
+    
