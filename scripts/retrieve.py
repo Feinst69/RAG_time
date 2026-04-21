@@ -1,4 +1,4 @@
-from rag_time.retrieval import  rag_search
+import rag_time.retrieval as ragrt
 from rag_time.config.settings import settings
 import argparse
 import json
@@ -15,7 +15,7 @@ def main():
     filter = None if not args.filter else json.loads(args.filter)
     print(f"Filter: {filter}")
    
-    results = rag_search(query, settings.collection_name, method=method, filter=filter, limit=settings.top_k)
+    results = ragrt.rag_search(query, settings.collection_name, method=method, filter=filter, limit=settings.top_k)
     print(f"RAG Search Results:")
     for key, val in results.items():
         print(f"ID: {key}\n\nScore: {val['score']}\n\nSujet: {val['subject']}\n\nQuestion: {val['body']}\

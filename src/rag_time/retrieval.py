@@ -3,7 +3,7 @@ from rag_time.config.settings import settings
 from rag_time.embeddings import EmbeddingsGenerator, SparseEmbeddingsGenerator
 from typing import Any
 
-client = QdrantClient(host="localhost", port=6333)
+client = QdrantClient(settings.qdrant_url)
 embedding_model = EmbeddingsGenerator(settings.embedding_model, max_length=settings.embedding_dimension)
 sparse_embedding_model = SparseEmbeddingsGenerator(settings.sparse_model)
 
