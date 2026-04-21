@@ -1,0 +1,11 @@
+services:
+  rag-time-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      RAG_JSONL_PATH: data/aa_embeddings_hg.jsonl
+      RAG_QUERY_MODEL: intfloat/multilingual-e5-small
+      RAG_DEVICE: cpu

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import streamlit as st
@@ -9,8 +10,9 @@ import streamlit as st
 from rag_time.retriever import HybridRetriever, SearchFilters
 
 
-DEFAULT_JSONL_PATH = "data/aa_embeddings_hg.jsonl"
-DEFAULT_MODEL = "intfloat/multilingual-e5-small"
+DEFAULT_JSONL_PATH = os.getenv("RAG_JSONL_PATH", "data/aa_embeddings_hg.jsonl")
+DEFAULT_MODEL = os.getenv("RAG_QUERY_MODEL", "intfloat/multilingual-e5-small")
+DEFAULT_DEVICE = os.getenv("RAG_DEVICE", "cpu")
 
 
 def collect_filter_options(retriever: HybridRetriever) -> dict[str, list[str]]:
@@ -64,7 +66,9 @@ def main() -> None:
         st.subheader("Configuration")
         jsonl_path = st.text_input("Fichier JSONL", value=DEFAULT_JSONL_PATH)
         model_name = st.text_input("Modèle de requête", value=DEFAULT_MODEL)
-        device = st.selectbox("Device", options=["cpu", "cuda"], index=0)
+        device_options = ["cpu", "cuda"]
+        default_device_index = device_options.index(DEFAULT_DEVICE) if DEFAULT_DEVICE in device_options else 0
+        device = st.selectbox("Device", options=device_options, index=default_device_index)
         vector_weight = st.slider(
             "Poids vectoriel",
             min_value=0.0,
