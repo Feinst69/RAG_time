@@ -3,8 +3,8 @@ from typing import Tuple
 
 import dspy
 
-from qdrant_rag.dspy.checks.request_classifier import Response_Type_Classifier
-from qdrant_rag.dspy.constants import (
+from rag_time.dspy.checks.request_classifier import Response_Type_Classifier
+from rag_time.dspy.constants import (
     DEFAULT_RESPONSE_TEMPLATE,
     RESPONSE_CLASSIFICATION_TASKS,
     RESPONSE_TEMPLATES,

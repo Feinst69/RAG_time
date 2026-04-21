@@ -5,7 +5,7 @@ from textwrap import dedent
 
 import dspy
 
-from qdrant_rag.dspy.config import ConfigError, DSPyConfig
+from rag_time.dspy.config import ConfigError, DSPyConfig
 
 LOGGER = logging.getLogger("terres_inovia")
 

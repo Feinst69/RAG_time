@@ -1,4 +1,4 @@
-from qdrant_rag.llm.openrouter import openrouter_llm_api_call
+from rag_time.llm.openrouter import openrouter_llm_api_call
 
 def precision_at_k(retrieved_docs, relevant_docs, k):
     """

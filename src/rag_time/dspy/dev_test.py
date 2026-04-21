@@ -7,16 +7,17 @@ from textwrap import dedent
 import dspy
 from dotenv import load_dotenv
 
-from qdrant_rag.dspy.checks.request_classifier import Response_Type_Classifier
-from qdrant_rag.dspy.config import ConfigError, DSPyConfig
-from qdrant_rag.dspy.constants import (
+from rag_time.dspy.checks.request_classifier import Response_Type_Classifier
+from rag_time.dspy.config import ConfigError, DSPyConfig
+from rag_time.dspy.constants import (
     DEFAULT_RESPONSE_TEMPLATE,
     RESPONSE_CLASSIFICATION_TASKS,
     RESPONSE_TEMPLATES,
 )
-from qdrant_rag.dspy.cost import get_info
-from qdrant_rag.dspy.agents.response_router import RoutedAnswerSignature
-from qdrant_rag.dspy.agents.guardian import Guardrail
+from rag_time.dspy.cost import get_info
+from rag_time.dspy.agents.response_router import RoutedAnswerSignature
+from rag_time.dspy.agents.guardian import Guardrail
+from rag_time.dspy.agents.query_rephraser import QueryRephraser
 
 
 def show_config() -> None:
@@ -84,11 +85,16 @@ def configure_lm() -> None:
 
 
 async def run_demo() -> None:
+
+  print("---\nÉtape 1 – Dspy Setup")
   configure_lm()
   classifier = Response_Type_Classifier()
   guardian = Guardrail()
+  query_rephraser = QueryRephraser()
   query = "Peux-tu faire une synthèse scientifique du projet R2D2 ?"
-  history = dspy.History(messages=[{"role": "user", "content": "Bonjour, quel est le bilan scientifique du projet R2D2 ?"}])
+  history = dspy.History(messages=[{"role": "user", "content": "Bonjour, quel est le bilan scientifique du projet R2D2 ?"},
+    {"role": "assistant", "content": "Le projet R2D2 a permis d'obtenir une augmentation de rendement de 18% en moyenne sur les cultures de lentilles, ainsi qu'une réduction de 35% des attaques d'altises grâce à l'association avec la cameline. Les agriculteurs participants ont suivi des protocoles mutualisés pour les relevés hebdomadaires et le comptage des insectes, et ont partagé leurs données via des fiches terrain."}
+    ])
 
   classification_cost = {"prompt_tokens": 0, "completion_tokens": 0, "cost": 0.0}
   template = DEFAULT_RESPONSE_TEMPLATE
@@ -107,18 +113,36 @@ async def run_demo() -> None:
       justification = result.justification or "classification positive"
       break
 
-  print("---\nÉtape 2 – template sélectionné")
+  print("---\nÉtape 2 – Query Rephrasing")
+  print(f"query : {query}")
+
+  before_rephrase = list(getattr(dspy.settings.lm, "history", []) or [])
+  rephrased_query = await query_rephraser(question=query, history=history)
+  after_rephrase = getattr(dspy.settings.lm, "history", []) or []
+  rephrase_entries = after_rephrase[len(before_rephrase):]
+  rephrase_cost = summarize_history(rephrase_entries)
+  print(f"Rephrased query : {rephrased_query}")
+
+
+  print("---\nÉtape 3 – template sélectionné")
   print(f"Template: {template} ({justification})")
 
   writer_signature = RoutedAnswerSignature.with_instructions(
       RESPONSE_TEMPLATES.get(template, RESPONSE_TEMPLATES[DEFAULT_RESPONSE_TEMPLATE])
   )
-  writer_module = dspy.ChainOfThought(writer_signature)
+  writer_module = dspy.ChainOfThought(writer_signature.with_instructions(writer_signature.instructions + "\n\nTu disposes d'un bloc 'documents' contenant la synthèse des extraits. Utilise-le intégralement."))
   listener = dspy.streaming.StreamListener(signature_field_name="answer")
   stream_writer = dspy.streamify(writer_module, stream_listeners=[listener])
   before_writer = len(lm_history)
-  print("---\nÉtape 4 – réponse finale (streaming)")
+
+  print("---\nÉtape 4 – RAG (FAKED FOR NOW)")
+  print(f"Template: {template} ({justification})")
+
   documents_block = format_chunks(fake_rag_chunks())
+
+  print("---\nÉtape 5 – réponse finale (streaming)")
+
+  
   stream = stream_writer(query=query, conversation_history=history, documents=documents_block)
   final_answer_parts: list[str] = []
   chunk_index = 1
@@ -133,7 +157,7 @@ async def run_demo() -> None:
   generation_cost = summarize_history(writer_entries)
   print("\n---\n(Streaming terminé)")
 
-  print("---\nÉtape 5 – contrôle guardrail")
+  print("---\nÉtape 6 – final answer guardrail (goal is to eventually send warning or remove displayed answer)")
   before_guard = len(lm_history)
   guard = await guardian(query=final_answer)
   guard_entries = lm_history[before_guard:]
@@ -145,12 +169,13 @@ async def run_demo() -> None:
       "template": template,
       "justification": justification,
       "costs": {
+          "query_rephrase": rephrase_cost,
           "classification": classification_cost,
           "main_answer": generation_cost,
           "guardrail": guard_cost,
       }
   }
-  print("---\nBilan des coûts")
+  print("---\nÉtape 7 – Bilan des coûts")
   print(summary["costs"])
 
 

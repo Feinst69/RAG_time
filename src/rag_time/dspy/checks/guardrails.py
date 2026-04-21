@@ -5,7 +5,7 @@ import os
 from typing import Literal
 import logging
 
-from qdrant_rag.dspy.constants import HAZARD_CATEGORY
+from rag_time.dspy.constants import HAZARD_CATEGORY
 
 
 

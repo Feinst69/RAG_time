@@ -25,13 +25,13 @@ import dspy
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 
-from qdrant_rag.dspy.agents.guardian import Guardrail
-from qdrant_rag.dspy.agents.query_rephraser import QueryRephraser
-from qdrant_rag.dspy.config import ConfigError, DSPyConfig
-from qdrant_rag.dspy.cost import get_info
-from qdrant_rag.rag.config import DEFAULT_TOP_K, RETRIEVAL_CANDIDATES, QDRANT_URL
-from qdrant_rag.rag.models import FilterParams, SearchResult
-from qdrant_rag.rag.retriever import HybridRetriever
+from rag_time.dspy.agents.guardian import Guardrail
+from rag_time.dspy.agents.query_rephraser import QueryRephraser
+from rag_time.dspy.config import ConfigError, DSPyConfig
+from rag_time.dspy.cost import get_info
+from rag_time.rag.config import DEFAULT_TOP_K, RETRIEVAL_CANDIDATES, QDRANT_URL
+from rag_time.rag.models import FilterParams, SearchResult
+from rag_time.rag.retriever import HybridRetriever
 
 
 # ---------------------------------------------------------------------------

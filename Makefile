@@ -9,4 +9,4 @@ install:
 	@uv sync
         
 eval:
-	@uv run src/qdrant_rag/eval/rag_eval.py
+	@uv run src/rag_time/eval/rag_eval.py

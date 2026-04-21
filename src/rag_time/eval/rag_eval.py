@@ -1,6 +1,6 @@
 import json
 
-from qdrant_rag.eval.metrics import precision_at_k, recall_at_k, judge_relevance
+from rag_time.eval.metrics import precision_at_k, recall_at_k, judge_relevance
 
 def yaml_loader(path):
     import yaml

@@ -4,10 +4,10 @@ from typing import Optional
 import dspy
 import logging
 
-from qdrant_rag.dspy.agents.guardian import check_safety
-from qdrant_rag.dspy.agents.writer import writer
+from rag_time.dspy.agents.guardian import check_safety
+from rag_time.dspy.agents.writer import writer
 
-from qdrant_rag.dspy.cost import get_info
+from rag_time.dspy.cost import get_info
 
 
 class Chatbot():

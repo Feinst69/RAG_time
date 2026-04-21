@@ -7,8 +7,8 @@ References:
 """
 import logging
 import dspy
-from qdrant_rag.dspy.constants import HAZARD_CATEGORY
-from qdrant_rag.dspy.checks.guardrails import Guardrail
+from rag_time.dspy.constants import HAZARD_CATEGORY
+from rag_time.dspy.checks.guardrails import Guardrail
 
 class GuardrailSignature(dspy.Signature):
     """

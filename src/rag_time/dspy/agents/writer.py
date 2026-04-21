@@ -3,7 +3,8 @@ import logging
 import re
 from typing import  Optional,TYPE_CHECKING
 
-from qdrant_rag.dspy.objects import basic_interpretation, presentation, scientific_report
+from rag_time.dspy.objects import scientific_report
+from rag_time.dspy.objects import basic_interpretation, presentation
 
 class ReportWriterSignature(dspy.Signature):
     """

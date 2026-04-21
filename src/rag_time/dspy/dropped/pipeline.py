@@ -8,14 +8,14 @@ from typing import Literal
 load_dotenv()
 # Dspy Imports
 
-from qdrant_rag.dspy.checks.request_classifier import Classify_response_type
+from rag_time.dspy.checks.request_classifier import Classify_response_type
 
 
 class DSPyPipeline(user_request: str):
     """A DSPy pipeline that classifies the user request and then routes it to the appropriate module."""
 
     # Step 1: Guardrails checks
-    from qdrant_rag.dspy..checks.guardrails import Guardrails
+    from rag_time.dspy.checks.guardrails import Guardrails
     from .rules import Rules
 
     guardrails_result = dspy.Predict(Guardrails)(
