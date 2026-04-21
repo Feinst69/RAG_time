@@ -53,3 +53,6 @@ def main():
     parser.add_argument("-o", "--output", required=True, type=str, help="Path to the output JSONL file")
     args = parser.parse_args()
     build_rag_data(args.input, args.output)
+
+if __name__ == "__main__":
+    main()

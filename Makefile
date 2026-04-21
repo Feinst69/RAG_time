@@ -1,4 +1,4 @@
-.PHONY : clean, install
+.PHONY : clean, install, eval
 
 clean:
 	@for file in ".ipynb_checkpoints" "*.egg-info" "__pycache__"; do \
@@ -7,5 +7,6 @@ clean:
 
 install:
 	@uv sync
-
         
+eval:
+	@uv run src/qdrant_rag/eval/rag_eval.py

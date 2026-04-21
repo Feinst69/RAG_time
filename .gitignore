@@ -5,3 +5,5 @@
 qdrant_storage
 __pycache__
 *egg-info*
+
+dump
