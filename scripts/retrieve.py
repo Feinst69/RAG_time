@@ -1,30 +1,23 @@
-from rag_time.retrieval import do_semantic_search, do_lexical_search, do_hybrid_search
+from rag_time.retrieval import  rag_search
+from rag_time.config.settings import settings
 import argparse
+import json
+
 
 def main():
     parser= argparse.ArgumentParser(description="RAG Time - Semantic Search")
     parser.add_argument("-q","--query", type=str, required=True, help="The query to search for")
+    parser.add_argument("-m","--method", type=str, choices=["semantic", "lexical", "hybrid"], default="hybrid", help="The search method to use")
+    parser.add_argument("-f","--filter", type=str, help="The filter to apply to the search results in the format {\"key\":\"value\", ...}")
     args = parser.parse_args()
     query = args.query
-    
-    """
-    print("="*50)
-    results = do_semantic_search(query)
-    print("="*50)
-    print(f"Semantic Search Results:")
-    for key, val in results.items():
-        print(f"ID: {key}\n\n Score: {val['score']}\n\nSujet: {val['subject']}\n\nQuestion: {val['body']}\n\nRéponse; {val['answer']}\n\n{'-'*50}\n\n")
+    method = args.method
+    filter = None if not args.filter else json.loads(args.filter)
+    print(f"Filter: {filter}")
    
-    print("="*50)
-    results = do_lexical_search(query)
-    print("="*50)
-    print(f"Lexical Search Results:")
+    results = rag_search(query, settings.collection_name, method=method, filter=filter, limit=settings.top_k)
+    print(f"RAG Search Results:")
     for key, val in results.items():
-        print(f"ID: {key}\n\n Score: {val['score']}\n\nSujet: {val['subject']}\n\nQuestion: {val['body']}\n\nRéponse; {val['answer']}\n\n{'-'*50}\n\n")
-    """
-    print("="*50)
-    results = do_hybrid_search(query)
-    print("="*50)
-    print(f"Hybrid Search Results:")
-    for key, val in results.items():
-        print(f"ID: {key}\n\n Score: {val['score']}\n\nSujet: {val['subject']}\n\nQuestion: {val['body']}\n\nRéponse; {val['answer']}\n\n{'-'*50}\n\n")
+        print(f"ID: {key}\n\nScore: {val['score']}\n\nSujet: {val['subject']}\n\nQuestion: {val['body']}\
+              \n\nRéponse: {val['answer']}\n\nQueue: {val['queue']}\n\nType: {val['type']}\n\n{'-'*50}\n\n")
+   
