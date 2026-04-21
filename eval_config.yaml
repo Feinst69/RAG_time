@@ -36,7 +36,10 @@ retrieval:
       - mixedbread-ai/mxbai-edge-colbert-v0-32m
       - LiquidAI/LFM2-ColBERT-350M
 
-  query_rephrasing: true  
+  query_rephrasing: 
+    - true
+    - false
+
   metrics: 
     - mean_reciprocal_rank: 
         description: "Evaluate the average of the reciprocal ranks of the first relevant document for a set of queries."

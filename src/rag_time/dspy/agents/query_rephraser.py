@@ -16,7 +16,7 @@ def _load_agent_profile() -> dict[str, object]:
   except ConfigError as exc:  # pragma: no cover - configuration missing
     LOGGER.warning("DSPy config missing (%s); fallback profile used.", exc)
     return {
-        "domain": "Institut Technologique Agricole",
+        "domain": "Ticketing support",
         "domain_knowledge": "",
         "model_id": "google/gemini-3-pro-preview",
         "temperature": 0.2,
@@ -35,14 +35,12 @@ def _load_agent_profile() -> dict[str, object]:
       "temperature": temperature,
   }
 
-
 class QueryRephraserSignature(dspy.Signature):
   query: str = dspy.InputField(desc="Texte à reformuler pour améliorer la recherche documentaire.")
   history: dspy.History = dspy.InputField(desc="Historique de conversation pour contexte.")
   domain: str = dspy.InputField(desc="Domaine métier pour guider la reformulation.")
   domain_knowledge: str = dspy.InputField(desc="Connaissances métier à rappeler dans la reformulation.")
   rephrased_query: str = dspy.OutputField(desc="Question reformulée en une seule phrase concise.")
-
 
 class QueryRephraser(dspy.Module):
   def __init__(self) -> None:
