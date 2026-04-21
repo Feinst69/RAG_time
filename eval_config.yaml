@@ -1,4 +1,9 @@
 retrieval:
+  # Eval uses collections prefixed with this value (e.g. eval_support_tickets).
+  # The production collection (support_tickets) is never touched by the eval pipeline.
+  eval_collection_prefix: "eval_"
+  dataset_path: "data/aa_sample.csv"
+
   q_&_a_pairs:
     - question: "My phone won't start"
       answer: "Try charging the phone for at least 30 minutes, then press and hold the power button. If it still does not start, force restart it or check whether the battery, charger, or screen may be faulty."
@@ -55,7 +60,7 @@ retrieval:
         evaluation_method: "Calculate the Normalized Discounted Cumulative Gain (NDCG) for the top K results of each query, which accounts for both relevance and rank position, and average this across all queries."
 
 llm:
-  activated: false
+  activated: true
   models:
     - google/gemini-3.1-flash-lite-preview
     - anthropic/claude-haiku-4.5
@@ -69,6 +74,3 @@ llm:
     - retrieval_usage:
         description: "Evaluate how effectively the retrieved documents are used in the answer generation process."
         evaluation_method: "Analyze the generated answers to determine if and how the retrieved documents were incorporated, and assess the impact on answer quality."
-    - latency: 
-        description: "Measure the time taken for the entire RAG pipeline, including retrieval and answer generation."
-        evaluation_method: "Use time measurements to evaluate the latency of the RAG pipeline and identify any bottlenecks in the process."

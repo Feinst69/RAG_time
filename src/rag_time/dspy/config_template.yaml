@@ -11,6 +11,8 @@ domain_knowledge: "Key concepts: ticket priority (Low/Medium/High/Urgent), SLA b
   Products: Web Portal, Mobile App, Payment Gateway, Subscription Service, API Service,
   Analytics Dashboard, E-commerce Store, Cloud Storage, Billing System."
 fallback_model: "google/gemini-2.5-pro-preview"
+# Model used to configure the global DSPy LM (prefixed with openrouter/ for LiteLLM routing)
+lm_model: "openrouter/google/gemini-2.5-pro-preview"
 agents:
   - name: "writer"
     model_id: "google/gemini-2.5-pro-preview"

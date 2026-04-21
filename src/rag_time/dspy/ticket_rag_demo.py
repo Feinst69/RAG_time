@@ -27,7 +27,7 @@ from qdrant_client import QdrantClient
 
 from rag_time.dspy.agents.guardian import Guardrail
 from rag_time.dspy.agents.query_rephraser import QueryRephraser
-from rag_time.dspy.config import ConfigError, DSPyConfig
+from rag_time.dspy.config import DSPyConfig
 from rag_time.dspy.cost import get_info
 from rag_time.rag.config import DEFAULT_TOP_K, RETRIEVAL_CANDIDATES, QDRANT_URL
 from rag_time.rag.models import FilterParams, SearchResult
@@ -43,8 +43,9 @@ def configure_lm() -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY missing – set it in .env")
+    model = DSPyConfig().lm_model
     lm = dspy.LM(
-        model="openrouter/google/gemini-2.5-pro-preview",
+        model=model,
         api_base="https://openrouter.ai/api/v1",
         api_key=api_key,
     )

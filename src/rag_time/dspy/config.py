@@ -38,7 +38,12 @@ class DSPyConfig:
   # Would be nice to use it on failures, look at https://digitalrain.studio/posts/2025-07-08-dspy-openrouter-integration
   @property
   def fallback_model(self) -> str:
-    return str(self._payload.get("fallback_model", "google/gemini-3-pro-preview"))
+    return str(self._payload.get("fallback_model", "google/gemini-2.5-pro-preview"))
+
+  @property
+  def lm_model(self) -> str:
+    """Global DSPy LM model ID (LiteLLM format, e.g. openrouter/...)."""
+    return str(self._payload.get("lm_model", f"openrouter/{self.fallback_model}"))
 
   def as_dict(self) -> dict[str, Any]:
     return json.loads(json.dumps(self._payload))

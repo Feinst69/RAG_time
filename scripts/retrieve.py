@@ -28,3 +28,6 @@ def main():
     print(f"Hybrid Search Results:")
     for key, val in results.items():
         print(f"ID: {key}\n\n Score: {val['score']}\n\nSujet: {val['subject']}\n\nQuestion: {val['body']}\n\nRéponse; {val['answer']}\n\n{'-'*50}\n\n")
+
+if __name__ == "__main__":
+    main()

@@ -16,3 +16,6 @@ def main():
     print(f"Uploading tickets from {args.input} to Qdrant...")
     upload_tickets_to_qdrant(args.input)
     print("Upload completed.")
+
+if __name__ == "__main__":
+    main()
