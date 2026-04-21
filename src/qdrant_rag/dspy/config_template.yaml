@@ -1,0 +1,23 @@
+debug_mode: true
+version: 0.0.3
+domain: "Customer Support Ticketing System"
+domain_description: "A customer support platform managing tickets across multiple products
+  (Web Portal, Mobile App, Payment Gateway, Subscription Service, API Service, etc.).
+  Support agents handle issues ranging from account suspension and billing disputes to
+  performance problems and feature requests, across diverse customer segments
+  (Small Business, Corporate, Individual) and regions."
+domain_knowledge: "Key concepts: ticket priority (Low/Medium/High/Urgent), SLA breach,
+  escalation, resolution time, customer satisfaction score, issue complexity.
+  Products: Web Portal, Mobile App, Payment Gateway, Subscription Service, API Service,
+  Analytics Dashboard, E-commerce Store, Cloud Storage, Billing System."
+fallback_model: "google/gemini-2.5-pro-preview"
+agents:
+  - name: "writer"
+    model_id: "google/gemini-2.5-pro-preview"
+    temperature: 0
+  - name: "guardian"
+    model_id: "google/gemini-2.5-pro-preview"
+    temperature: 0
+  - name: "query_rephraser"
+    model_id: "google/gemini-2.5-pro-preview"
+    temperature: 0.2
