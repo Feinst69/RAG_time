@@ -1,0 +1,46 @@
+retrieval:
+  q_&_a_pairs:
+  - What are the most common issue descriptions in the dataset?
+    - To find the most common issue descriptions, we can use the `value_counts()` method on the `issue_description` column of the DataFrame. This will give us a count of each unique issue description and their frequencies.
+  - What are the most common resolution notes in the dataset?
+    - Similar to the issue descriptions, we can use the `value_counts()` method on the `resolution_notes` column to find the most common resolution notes and their frequencies.
+  - Is there a correlation between specific issue descriptions and resolution notes?
+    - To analyze the correlation between issue descriptions and resolution notes, we can create a contingency table using the `pd.crosstab()` function. This will allow us to see the frequency of each combination of issue descriptions and resolution notes, and we can calculate
+    the correlation using statistical measures such as the chi-squared test or Cramér's V.
+  - Are there any patterns in the issue descriptions that lead to specific resolution notes?
+    - To identify patterns in issue descriptions that lead to specific resolution notes, we can perform a
+    text analysis on the issue descriptions and resolution notes. This can include techniques such as topic modeling, clustering, or keyword extraction to identify common themes or patterns in the data. We can also use natural language processing (NLP) techniques to analyze the text and find relationships between issue descriptions and resolution notes.
+
+  retrieval_models:
+    # PyLate ColBERT model used for dense retrieval (mean-pooled token embeddings)
+    dense: 
+      - mixedbread-ai/mxbai-edge-colbert-v0-17m
+      - mixedbread-ai/mxbai-edge-colbert-v0-32m
+    # fastembed BM25 model for sparse retrieval
+    sparse: 
+      -   Qdrant/bm25
+      -   prithivida/Splade_PP_en_v1
+    # PyLate ColBERT model used for late-interaction reranking (MaxSim)
+    reranker: 
+      - mixedbread-ai/mxbai-edge-colbert-v0-32m
+      - liquidai/...
+
+  query_rephrasing: false
+
+llm:
+  models:
+    - google/gemini-3.1-flash-lite-preview
+    - anthropic/claude-haiku-4.5
+  metrics:
+    - answer_quality: 
+        description: "Evaluate the quality of the generated answers based on relevance, accuracy, and completeness."
+        evaluation_method: "Use a combination of human evaluation and automated metrics such as BLEU, ROUGE, or BERTScore to assess the quality of the answers."
+    - retrieval_relevance: 
+        description: "Evaluate the relevance of the retrieved documents to the query."
+        evaluation_method: "Use metrics such as Mean Reciprocal Rank (MRR), Precision@K, and Recall@K to assess the relevance of the retrieved documents."
+    - retrieval_usage:
+        description: "Evaluate how effectively the retrieved documents are used in the answer generation process."
+        evaluation_method: "Analyze the generated answers to determine if and how the retrieved documents were incorporated, and assess the impact on answer quality."
+    - latency: 
+        description: "Measure the time taken for the entire RAG pipeline, including retrieval and answer generation."
+        evaluation_method: "Use time measurements to evaluate the latency of the RAG pipeline and identify any bottlenecks in the process."
