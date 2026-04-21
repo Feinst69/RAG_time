@@ -47,7 +47,7 @@ def full_eval(config_path):
                     for llm_model in config['llm']['models']:
                         print(f"Evaluating LLM model: {llm_model}")
                         # Add evaluation code for each LLM model
-                        
+                        evaluate_llm_answers()
                 
                 save_results()
                 best_combinations = {}
@@ -58,7 +58,6 @@ if __name__ == "__main__":
     config = yaml_loader("eval_config.yaml")
     print(config)
     full_eval("eval_config.yaml")
-
 
     # save results to a json file
     with open("eval_results.json", "w") as f:
