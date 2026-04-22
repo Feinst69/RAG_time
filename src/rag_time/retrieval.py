@@ -7,6 +7,48 @@ client = QdrantClient(host="localhost", port=6333)
 embedding_model = EmbeddingsGenerator(settings.embedding_model, max_length=settings.embedding_dimension)
 sparse_embedding_model = SparseEmbeddingsGenerator(settings.sparse_model)
 
+_dense_cache: dict[str, EmbeddingsGenerator] = {}
+_sparse_cache: dict[str, SparseEmbeddingsGenerator] = {}
+
+
+def _get_dense(model_name: str) -> EmbeddingsGenerator:
+    if model_name not in _dense_cache:
+        print(f"  [retrieval] loading dense model: {model_name}")
+        _dense_cache[model_name] = EmbeddingsGenerator(model_name)
+    return _dense_cache[model_name]
+
+
+def _get_sparse(model_name: str) -> SparseEmbeddingsGenerator:
+    if model_name not in _sparse_cache:
+        print(f"  [retrieval] loading sparse model: {model_name}")
+        _sparse_cache[model_name] = SparseEmbeddingsGenerator(model_name)
+    return _sparse_cache[model_name]
+
+
+def hybrid_search_with_models(
+    query_text: str,
+    collection_name: str,
+    dense_model_name: str,
+    sparse_model_name: str,
+    limit: int = 30,
+):
+    """Hybrid search using explicitly specified dense and sparse models."""
+    dense = _get_dense(dense_model_name)
+    sparse = _get_sparse(sparse_model_name)
+    dense_query = dense.encode_query(query_text)
+    sparse_query = sparse.encode_query(query_text)
+    result = client.query_points(
+        collection_name=collection_name,
+        prefetch=[
+            qdrant_models.Prefetch(query=dense_query, using="vector", limit=limit),
+            qdrant_models.Prefetch(query=sparse_query, using="sparse-vector", limit=limit),
+        ],
+        query=qdrant_models.FusionQuery(fusion=qdrant_models.Fusion.RRF),
+        with_payload=qdrant_models.PayloadSelectorInclude(include=["ref_id", "chunk"]),
+        limit=limit,
+    )
+    return result.points
+
 
 def semantic_search_tickets(query_text: str, collection_name: str, limit: int = 3):
     query_vector = embedding_model.encode_query(query_text)
@@ -64,7 +106,8 @@ def get_tickets_by_ids(collection_name: str, ids: list):
         with_vectors=False
     )
 
-def clean_results(results: list[Any]):
+def clean_results(results: list[Any], collection_name: str | None = None):
+    collection_name = collection_name or settings.collection_name
     cleaned_results = {}
     for res in results:
         ref_id = res.payload.get("ref_id")
@@ -72,8 +115,8 @@ def clean_results(results: list[Any]):
             cleaned_results[ref_id] = {"score": res.score}
         if len(cleaned_results) >= settings.top_k:
             break
-    
-    documents = get_tickets_by_ids(settings.collection_name, list(cleaned_results.keys())) 
+
+    documents = get_tickets_by_ids(collection_name, list(cleaned_results.keys()))
     for doc in documents:
         cleaned_results[doc.id] |= doc.payload
 

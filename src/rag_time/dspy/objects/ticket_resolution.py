@@ -1,26 +1,38 @@
 from pydantic import BaseModel, Field
 
+max_words = dict(
+    issue_clarification=80,
+    proposed_solutions=300,
+    user_message=400,
+)
+
+for _key, _val in max_words.items():
+    max_words[_key] = f"in fewer than {_val} words"
+
 
 class TicketResolution(BaseModel):
     issue_clarification: str = Field(
         desc=(
-            "A concise summary of the identified issue based on the retrieved tickets "
-            "and the user's query. Clarify what the root problem is in 2-4 sentences."
+            f"A concise summary of the identified issue based on the retrieved tickets "
+            f"and the user's query. Clarify what the root problem is in 2-4 sentences. "
+            f"{max_words['issue_clarification']}."
         )
     )
     proposed_solutions: str = Field(
         desc=(
-            "A structured list of actionable solutions drawn from the retrieved tickets. "
-            "Each solution must cite the relevant ticket(s) it comes from using the format "
-            "[Ticket #<id>]. Include at least one citation per solution step."
+            f"A structured list of actionable solutions drawn from the retrieved tickets. "
+            f"Each solution must cite the relevant ticket(s) using the format [Ticket #<id>]. "
+            f"Include at least one citation per solution step. "
+            f"{max_words['proposed_solutions']}."
         )
     )
     user_message: str = Field(
         desc=(
-            "A ready-to-send message addressed to the user that summarises the issue and "
-            "presents the proposed resolution steps. Use [Username] to refer to the user "
-            "and [helper_name] to refer to the support agent who will follow up. "
-            "Keep a professional, empathetic tone."
+            f"A ready-to-send message addressed to the user summarising the issue and "
+            f"the proposed resolution steps. Use [Username] to refer to the user and "
+            f"[helper_name] to refer to the support agent who will follow up. "
+            f"Keep a professional, empathetic tone. "
+            f"{max_words['user_message']}."
         )
     )
 

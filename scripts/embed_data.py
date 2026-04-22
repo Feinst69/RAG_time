@@ -20,13 +20,16 @@ def handle_ticket(line, splitter, generator, sparse_generator):
     ticket.sparse_embeddings = sparse_generator.generate_vector(ticket.chunks)
     return ticket
 
-def build_rag_data(input_path: str, output_path: str):
+def build_rag_data(input_path: str, output_path: str, dense_model: str | None = None, sparse_model: str | None = None):
+    dense_model = dense_model or settings.embedding_model
+    sparse_model = sparse_model or settings.sparse_model
     print(f"Loading dataset from {input_path}...")
     df = DataLoader(input_path).load()
     df_len = len(df)
-    print(f"Loading Embeddings model...")
-    generator  = EmbeddingsGenerator(settings.embedding_model, max_length=settings.embedding_dimension)
-    sparse_generator = SparseEmbeddingsGenerator(settings.sparse_model)
+    print(f"Loading dense model: {dense_model}")
+    generator  = EmbeddingsGenerator(dense_model)
+    print(f"Loading sparse model: {sparse_model}")
+    sparse_generator = SparseEmbeddingsGenerator(sparse_model)
     print("Loading Text Splitter...")
     splitter = TextSplitter(chunk_size=settings.chunk_size)
     with open(output_path, "w") as f:
@@ -51,8 +54,10 @@ def main():
     parser = argparse.ArgumentParser(description="Build RAG data from dataset")
     parser.add_argument("-i", "--input", required=True, type=str, help="Path to the input CSV file")
     parser.add_argument("-o", "--output", required=True, type=str, help="Path to the output JSONL file")
+    parser.add_argument("--dense-model", type=str, default=None, help="Dense embedding model (overrides settings)")
+    parser.add_argument("--sparse-model", type=str, default=None, help="Sparse embedding model (overrides settings)")
     args = parser.parse_args()
-    build_rag_data(args.input, args.output)
+    build_rag_data(args.input, args.output, dense_model=args.dense_model, sparse_model=args.sparse_model)
 
 if __name__ == "__main__":
     main()

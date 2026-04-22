@@ -24,10 +24,20 @@ def recall_at_k(retrieved_docs, relevant_docs, k):
     return len(relevant_and_retrieved) / len(relevant_docs) if relevant_docs else 0.0
 
 
-def ndcg_at_k(retrieved_docs, relevant_docs, k):
+def ndcg_at_k(retrieved_docs: list, relevant_docs: dict, k: int) -> float:
+    """NDCG@K.
+
+    relevant_docs maps doc_id → relevance_score (float).
+    Returns 0.0 when no ground-truth labels are available.
+    """
+    if not relevant_docs:
+        return 0.0
     relevance_scores = [relevant_docs.get(doc_id, 0) for doc_id in retrieved_docs[:k]]
     ideal_relevance_scores = sorted(relevant_docs.values(), reverse=True)[:k]
-    return ndcg_score([ideal_relevance_scores], [relevance_scores])
+    # Pad ideal list to same length as actual if shorter
+    while len(ideal_relevance_scores) < len(relevance_scores):
+        ideal_relevance_scores.append(0)
+    return float(ndcg_score([ideal_relevance_scores], [relevance_scores]))
 
 
 async def judge_relevance_async(query: str, retrieved_docs: list) -> float:
@@ -36,7 +46,7 @@ async def judge_relevance_async(query: str, retrieved_docs: list) -> float:
     Returns a relevance score between 0.0 and 1.0.
     """
     judge = RelevanceJudge()
-    judgement: RelevanceJudgement = await judge.forward(query=query, documents=retrieved_docs)
+    judgement: RelevanceJudgement = await judge(query=query, documents=retrieved_docs)
     return judgement.relevance_score
 
 

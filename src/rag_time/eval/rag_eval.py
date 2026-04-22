@@ -13,18 +13,92 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
+import subprocess
 from statistics import mean
 from typing import Any
 
 import dspy
 from dotenv import load_dotenv
 
+from rag_time.config.settings import settings
+from rag_time.retrieval import hybrid_search_with_models, clean_results
 from rag_time.dspy.config import DSPyConfig
 from rag_time.dspy.agents.query_rephraser import QueryRephraser
 from rag_time.dspy.agents.ticket_answer import generate_answer
 from rag_time.dspy.agents.relevance_judge import RelevanceJudge, AnswerQualityJudgeSignature
 from rag_time.dspy.objects.ticket_resolution import TicketResolution, AnswerQualityJudgement
-from rag_time.eval.metrics import precision_at_k, recall_at_k, judge_relevance_async, ndcg_at_k
+from rag_time.eval.metrics import precision_at_k, recall_at_k, ndcg_at_k, judge_relevance_async
+
+
+# ---------------------------------------------------------------------------
+# Collection preparation helpers
+# ---------------------------------------------------------------------------
+
+def _model_slug(model: str) -> str:
+    """Convert a model name to a short collection-safe slug."""
+    return re.sub(r'[^a-z0-9]+', '_', model.split('/')[-1].lower()).strip('_')
+
+
+def _eval_collection_name(dense: str, sparse: str, prefix: str, base: str) -> str:
+    return f"{prefix}{_model_slug(dense)}_{_model_slug(sparse)}_{base}"
+
+
+def _prepare_collections(
+    dense_models: list[str],
+    sparse_models: list[str],
+    dataset_path: str,
+    eval_prefix: str,
+    base_collection: str,
+) -> dict[tuple[str, str], str]:
+    """For each unique (dense, sparse) pair, index the dataset and upload to a dedicated collection.
+
+    Returns a mapping (dense, sparse) → collection_name.
+    Already-existing collections are recreated to ensure vectors match the current models.
+    """
+    collection_map: dict[tuple[str, str], str] = {}
+    seen: set[tuple[str, str]] = set()
+
+    for dense in dense_models:
+        for sparse in sparse_models:
+            pair = (dense, sparse)
+            if pair in seen:
+                continue
+            seen.add(pair)
+
+            collection_name = _eval_collection_name(dense, sparse, eval_prefix, base_collection)
+            jsonl_path = f"/tmp/eval_{_model_slug(dense)}_{_model_slug(sparse)}.jsonl"
+
+            print(f"\n{'='*60}")
+            print(f"Preparing collection: {collection_name}")
+            print(f"  dense={dense}")
+            print(f"  sparse={sparse}")
+
+            print("  → Embedding data...")
+            subprocess.run(
+                [
+                    "uv", "run", "python", "scripts/embed_data.py",
+                    "-i", dataset_path,
+                    "-o", jsonl_path,
+                    "--dense-model", dense,
+                    "--sparse-model", sparse,
+                ],
+                check=True,
+            )
+
+            print("  → Uploading to Qdrant...")
+            env = os.environ.copy()
+            env["COLLECTION_NAME"] = collection_name
+            subprocess.run(
+                ["uv", "run", "python", "scripts/qdrant_upload.py", "-i", jsonl_path],
+                env=env,
+                check=True,
+            )
+
+            collection_map[pair] = collection_name
+            print(f"  ✓ {collection_name} ready")
+
+    return collection_map
 
 
 # ---------------------------------------------------------------------------
@@ -70,16 +144,25 @@ async def rephrase_query(query: str) -> str:
 
 
 async def compute_retrieval_metrics(
-    retrieved_docs: list,
-    relevant_docs: set,
+    retrieved_ids: list,
+    relevant_docs_set: set,
+    relevant_docs_scores: dict,
     k: int,
     query: str,
+    retrieved_docs: list,
 ) -> dict[str, float]:
-    """Compute all retrieval metrics for a single query."""
+    """Compute all retrieval metrics for a single query.
+
+    retrieved_ids        — hashable doc IDs for precision@k / recall@k / ndcg@k
+    relevant_docs_set    — set of relevant doc IDs (for precision@k, recall@k)
+    relevant_docs_scores — dict of doc_id → relevance score (for ndcg@k)
+    retrieved_docs       — full doc dicts passed to the LLM relevance judge
+    """
     relevance_score = await judge_relevance_async(query, retrieved_docs)
     return {
-        "precision_at_k": precision_at_k(retrieved_docs, relevant_docs, k),
-        "recall_at_k": recall_at_k(retrieved_docs, relevant_docs, k),
+        "precision_at_k": precision_at_k(retrieved_ids, relevant_docs_set, k),
+        "recall_at_k": recall_at_k(retrieved_ids, relevant_docs_set, k),
+        "ndcg_at_k": ndcg_at_k(retrieved_ids, relevant_docs_scores, k),
         "relevance_score": relevance_score,
     }
 
@@ -102,25 +185,24 @@ async def evaluate_llm_answers(
     )
     docs_text = "\n\n".join(str(d) for d in retrieved_docs) if retrieved_docs else "(none)"
 
-    judge_module = dspy.asyncify(dspy.ChainOfThought(AnswerQualityJudgeSignature))
-    result = await judge_module(
-        query=query,
-        retrieved_documents=docs_text,
-        generated_answer=answer_text,
-        reference_answer=reference_answer,
-    )
-
-    # Parse raw JSON string output into AnswerQualityJudgement Pydantic model
     import json as _json
     try:
+        judge_module = dspy.asyncify(dspy.ChainOfThought(AnswerQualityJudgeSignature))
+        result = await judge_module(
+            query=query,
+            retrieved_documents=docs_text,
+            generated_answer=answer_text,
+            reference_answer=reference_answer,
+        )
         raw = result.judgement if isinstance(result.judgement, dict) else _json.loads(result.judgement)
         judgement = AnswerQualityJudgement(**raw)
-    except Exception:
+    except Exception as e:
+        print(f"  [judge] error — using fallback scores ({type(e).__name__}: {e})")
         judgement = AnswerQualityJudgement(
             answer_quality=0.0,
             retrieval_relevance=0.0,
             retrieval_usage=0.0,
-            reasoning="Parsing failed",
+            reasoning=f"Error: {e}",
         )
 
     return {
@@ -148,8 +230,9 @@ async def _evaluate_combination(
     use_rephrasing: bool,
     qa_pairs: list[dict],
     k: int,
+    candidates: int,
     llm_models: list[str],
-    dataset_path: str = "data/aa_sample.csv",
+    collection_name: str,
 ) -> dict[str, Any]:
     """Run all q&a pairs through one model combination and return aggregated results."""
 
@@ -166,13 +249,23 @@ async def _evaluate_combination(
             query = original_query
 
         # ── Retrieval ────────────────────────────────────────────────────────
-        # TODO: replace with actual retriever call using (dense, sparse, reranker)
-        # dataset: dataset_path
-        retrieved_docs: list = []
-        relevant_docs: set = set()
+        raw = hybrid_search_with_models(query, collection_name, dense, sparse, limit=candidates)
+        retrieved_docs_map: dict = clean_results(raw, collection_name=collection_name)
+        retrieved_ids: list = list(retrieved_docs_map.keys())
+        retrieved_docs: list = list(retrieved_docs_map.values())
+        # No ground-truth labels: set/dict stay empty → precision@k, recall@k, ndcg@k = 0
+        relevant_docs_set: set = set()
+        relevant_docs_scores: dict = {}
+        print(f"  [retrieval:{collection_name}] k={k} candidates={candidates} query='{query[:50]}...' → {len(retrieved_docs)} docs")
+        for tid, doc in list(retrieved_docs_map.items())[:3]:
+            subject = doc.get("subject", "")[:60]
+            score = doc.get("score", "?")
+            print(f"    #{tid} score={score:.4f} | {subject}")
 
         # ── Retrieval metrics ────────────────────────────────────────────────
-        ret_metrics = await compute_retrieval_metrics(retrieved_docs, relevant_docs, k, query)
+        ret_metrics = await compute_retrieval_metrics(
+            retrieved_ids, relevant_docs_set, relevant_docs_scores, k, query, retrieved_docs
+        )
 
         q_result: dict[str, Any] = {
             "question": original_query,
@@ -183,16 +276,24 @@ async def _evaluate_combination(
         # ── LLM generation + metrics ─────────────────────────────────────────
         if llm_models:
             q_result["llm_results"] = {}
+            docs_str = "\n\n".join(
+                f"[Ticket #{tid}] {doc}" for tid, doc in retrieved_docs_map.items()
+            )
             for llm_model in llm_models:
                 _configure_lm(model=llm_model)
-                answer = await generate_answer(
-                    query=query,
-                    documents=str(retrieved_docs),
-                    streaming=False,
-                )
-                llm_metrics = await evaluate_llm_answers(
-                    query, retrieved_docs, answer, reference_answer
-                )
+                try:
+                    answer = await generate_answer(
+                        query=query,
+                        documents=docs_str,
+                        streaming=False,
+                    )
+                    llm_metrics = await evaluate_llm_answers(
+                        query, retrieved_docs, answer, reference_answer
+                    )
+                except Exception as e:
+                    print(f"  [llm:{llm_model}] error — skipping ({type(e).__name__}: {e})")
+                    answer = ""
+                    llm_metrics = {"answer_quality": 0.0, "retrieval_relevance": 0.0, "retrieval_usage": 0.0}
                 q_result["llm_results"][llm_model] = {
                     "answer": answer,
                     "metrics": llm_metrics,
@@ -216,6 +317,9 @@ async def _evaluate_combination(
             "sparse": sparse,
             "reranker": reranker,
             "query_rephrasing": use_rephrasing,
+            "k": k,
+            "candidates": candidates,
+            "collection": collection_name,
         },
         "avg_retrieval_metrics": avg_retrieval,
         "avg_llm_metrics": avg_llm,
@@ -257,12 +361,16 @@ def _configure_lm(model: str | None = None) -> None:
 
 async def full_eval(config_path: str) -> dict[str, Any]:
     load_dotenv(override=True)
-    _get_api_key()  # fail fast if key is missing
+    _configure_lm()  # set default LM for rephrasing + judges; overridden per model in the loop
     config = yaml_loader(config_path)
 
     qa_pairs: list[dict] = config["retrieval"]["q_&_a_pairs"]
-    k: int = config["retrieval"].get("k", 10)
     dataset_path: str = config["retrieval"].get("dataset_path", "data/aa_sample.csv")
+    eval_prefix: str = config["retrieval"].get("eval_collection_prefix", "eval_")
+    raw_k = config["retrieval"].get("k", [10])
+    k_values: list[int] = raw_k if isinstance(raw_k, list) else [raw_k]
+    raw_candidates = config["retrieval"].get("candidates", [100])
+    candidates_values: list[int] = raw_candidates if isinstance(raw_candidates, list) else [raw_candidates]
     dense_models: list[str] = config["retrieval"]["retrieval_models"]["dense"]
     sparse_models: list[str] = config["retrieval"]["retrieval_models"]["sparse"]
     reranker_models: list[str] = config["retrieval"]["retrieval_models"]["reranker"]
@@ -271,29 +379,42 @@ async def full_eval(config_path: str) -> dict[str, Any]:
     llm_activated: bool = config["llm"]["activated"]
     llm_models: list[str] = config["llm"]["models"] if llm_activated else []
 
+    # ── Build one collection per (dense, sparse) pair ────────────────────────
+    collection_map = _prepare_collections(
+        dense_models=dense_models,
+        sparse_models=sparse_models,
+        dataset_path=dataset_path,
+        eval_prefix=eval_prefix,
+        base_collection=settings.collection_name,
+    )
+
     all_combinations: list[dict] = []
 
     for dense in dense_models:
         for sparse in sparse_models:
+            collection_name = collection_map[(dense, sparse)]
             for reranker in reranker_models:
                 for use_rephrasing in rephrasing_options:
-                    label = f"{dense} | {sparse} | {reranker} | rephrasing={use_rephrasing}"
-                    print(f"\n{'─'*60}\nEvaluating: {label}")
+                    for k in k_values:
+                        for candidates in candidates_values:
+                            label = f"{dense} | {sparse} | {reranker} | rephrasing={use_rephrasing} | k={k} | candidates={candidates}"
+                            print(f"\n{'─'*60}\nEvaluating: {label}")
 
-                    combo = await _evaluate_combination(
-                        dense=dense,
-                        sparse=sparse,
-                        reranker=reranker,
-                        use_rephrasing=use_rephrasing,
-                        qa_pairs=qa_pairs,
-                        k=k,
-                        llm_models=llm_models,
-                        dataset_path=dataset_path,
-                    )
-                    all_combinations.append(combo)
-                    print(f"  avg retrieval : {combo['avg_retrieval_metrics']}")
-                    if llm_activated:
-                        print(f"  avg llm       : {combo['avg_llm_metrics']}")
+                            combo = await _evaluate_combination(
+                                dense=dense,
+                                sparse=sparse,
+                                reranker=reranker,
+                                use_rephrasing=use_rephrasing,
+                                qa_pairs=qa_pairs,
+                                k=k,
+                                candidates=candidates,
+                                llm_models=llm_models,
+                                collection_name=collection_name,
+                            )
+                            all_combinations.append(combo)
+                            print(f"  avg retrieval : {combo['avg_retrieval_metrics']}")
+                            if llm_activated:
+                                print(f"  avg llm       : {combo['avg_llm_metrics']}")
 
     # ── Rank all combinations by LLM answer quality ──────────────────────────
     ranked = sorted(all_combinations, key=_combo_llm_score, reverse=True)

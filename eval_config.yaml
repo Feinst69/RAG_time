@@ -4,27 +4,35 @@ retrieval:
   eval_collection_prefix: "eval_"
   dataset_path: "data/aa_sample.csv"
 
+  k:
+    - 5
+    - 10
+
+  candidates:
+    - 50
+    - 100
+
   q_&_a_pairs:
     - question: "My phone won't start"
       answer: "Try charging the phone for at least 30 minutes, then press and hold the power button. If it still does not start, force restart it or check whether the battery, charger, or screen may be faulty."
     - question: "My phone does not turn on after charging"
       answer: "Make sure the charging cable, adapter, and power outlet are working. Leave the phone connected to power for at least 30 minutes. If the screen stays black, try a force restart."
-    - question: "How do I force restart my phone?"
-      answer: "The exact method depends on the model, but it usually involves holding the power button alone or the power button together with a volume button for several seconds."
-    - question: "My phone shows a black screen but seems warm"
-      answer: "This may mean the phone is powered on but the display is not responding. Try a force restart, then connect it to a charger. If the issue continues, the screen or internal hardware may need repair."
-    - question: "My phone won't start after falling"
-      answer: "A drop may have damaged the battery, display, or internal components. Try charging it and performing a force restart. If it still does not start, professional repair is recommended."
-    - question: "My phone won't start after getting wet"
-      answer: "Turn it off if possible and do not try charging it immediately. Let it dry completely before attempting to power it on. If it still does not start, internal water damage may require service."
-    - question: "My phone is stuck on the startup logo"
-      answer: "This may indicate a software problem. Try forcing a restart first. If that does not help, recovery mode or a factory reset may be needed."
-    - question: "My phone vibrates but the screen stays off"
-      answer: "The phone may be turning on, but the display could be damaged or unresponsive. Try adjusting brightness, restarting the device, or connecting it to a computer to confirm whether it is recognized."
-    - question: "My phone battery may be dead and it won't start"
-      answer: "Charge the phone with a known working cable and adapter for at least 30 minutes. If there is still no sign of power, the battery or charging port may be defective."
-    - question: "What should I check first if my phone won't start?"
-      answer: "First check the charger, cable, outlet, and battery level. Then try charging for 30 minutes and perform a force restart. If nothing changes, look for signs of physical or water damage."
+    # - question: "How do I force restart my phone?"
+    #   answer: "The exact method depends on the model, but it usually involves holding the power button alone or the power button together with a volume button for several seconds."
+    # - question: "My phone shows a black screen but seems warm"
+    #   answer: "This may mean the phone is powered on but the display is not responding. Try a force restart, then connect it to a charger. If the issue continues, the screen or internal hardware may need repair."
+    # - question: "My phone won't start after falling"
+    #   answer: "A drop may have damaged the battery, display, or internal components. Try charging it and performing a force restart. If it still does not start, professional repair is recommended."
+    # - question: "My phone won't start after getting wet"
+    #   answer: "Turn it off if possible and do not try charging it immediately. Let it dry completely before attempting to power it on. If it still does not start, internal water damage may require service."
+    # - question: "My phone is stuck on the startup logo"
+    #   answer: "This may indicate a software problem. Try forcing a restart first. If that does not help, recovery mode or a factory reset may be needed."
+    # - question: "My phone vibrates but the screen stays off"
+    #   answer: "The phone may be turning on, but the display could be damaged or unresponsive. Try adjusting brightness, restarting the device, or connecting it to a computer to confirm whether it is recognized."
+    # - question: "My phone battery may be dead and it won't start"
+    #   answer: "Charge the phone with a known working cable and adapter for at least 30 minutes. If there is still no sign of power, the battery or charging port may be defective."
+    # - question: "What should I check first if my phone won't start?"
+    #   answer: "First check the charger, cable, outlet, and battery level. Then try charging for 30 minutes and perform a force restart. If nothing changes, look for signs of physical or water damage."
 
   retrieval_models:
     # PyLate ColBERT model used for dense retrieval (mean-pooled token embeddings)
@@ -45,32 +53,32 @@ retrieval:
     - true
     - false
 
-  metrics: 
-    - mean_reciprocal_rank: 
-        description: "Evaluate the average of the reciprocal ranks of the first relevant document for a set of queries."
-        evaluation_method: "Calculate the reciprocal rank for each query and then compute the mean across all queries to assess retrieval performance."
-    - precision_at_k: 
-        description: "Evaluate the proportion of relevant documents in the top K retrieved results."
-        evaluation_method: "For each query, calculate the number of relevant documents in the top K results divided by K, and average this across all queries."
-    - recall_at_k: 
-        description: "Evaluate the proportion of relevant documents retrieved out of all relevant documents available."
-        evaluation_method: "For each query, calculate the number of relevant documents in the top K results divided by the total number of relevant documents, and average this across all queries."
-    - ndcg_at_k: 
-        description: "Evaluate the relevance of retrieved documents while considering their positions in the ranked list."
-        evaluation_method: "Calculate the Normalized Discounted Cumulative Gain (NDCG) for the top K results of each query, which accounts for both relevance and rank position, and average this across all queries."
+  # metrics: 
+  #   - mean_reciprocal_rank: 
+  #       description: "Evaluate the average of the reciprocal ranks of the first relevant document for a set of queries."
+  #       evaluation_method: "Calculate the reciprocal rank for each query and then compute the mean across all queries to assess retrieval performance."
+  #   - precision_at_k: 
+  #       description: "Evaluate the proportion of relevant documents in the top K retrieved results."
+  #       evaluation_method: "For each query, calculate the number of relevant documents in the top K results divided by K, and average this across all queries."
+  #   - recall_at_k: 
+  #       description: "Evaluate the proportion of relevant documents retrieved out of all relevant documents available."
+  #       evaluation_method: "For each query, calculate the number of relevant documents in the top K results divided by the total number of relevant documents, and average this across all queries."
+  #   - ndcg_at_k: 
+  #       description: "Evaluate the relevance of retrieved documents while considering their positions in the ranked list."
+  #       evaluation_method: "Calculate the Normalized Discounted Cumulative Gain (NDCG) for the top K results of each query, which accounts for both relevance and rank position, and average this across all queries."
 
 llm:
   activated: true
   models:
     - google/gemini-3.1-flash-lite-preview
     - anthropic/claude-haiku-4.5
-  metrics:
-    - answer_quality: 
-        description: "Evaluate the quality of the generated answers based on relevance, accuracy, and completeness."
-        evaluation_method: "Use a combination of human evaluation and automated metrics such as BLEU, ROUGE, or BERTScore to assess the quality of the answers."
-    - retrieval_relevance: 
-        description: "Evaluate the relevance of the retrieved documents to the query."
-        evaluation_method: "Use metrics such as Mean Reciprocal Rank (MRR), Precision@K, and Recall@K to assess the relevance of the retrieved documents."
-    - retrieval_usage:
-        description: "Evaluate how effectively the retrieved documents are used in the answer generation process."
-        evaluation_method: "Analyze the generated answers to determine if and how the retrieved documents were incorporated, and assess the impact on answer quality."
+  # metrics:
+  #   - answer_quality: 
+  #       description: "Evaluate the quality of the generated answers based on relevance, accuracy, and completeness."
+  #       evaluation_method: "Use a combination of human evaluation and automated metrics such as BLEU, ROUGE, or BERTScore to assess the quality of the answers."
+  #   - retrieval_relevance: 
+  #       description: "Evaluate the relevance of the retrieved documents to the query."
+  #       evaluation_method: "Use metrics such as Mean Reciprocal Rank (MRR), Precision@K, and Recall@K to assess the relevance of the retrieved documents."
+  #   - retrieval_usage:
+  #       description: "Evaluate how effectively the retrieved documents are used in the answer generation process."
+  #       evaluation_method: "Analyze the generated answers to determine if and how the retrieved documents were incorporated, and assess the impact on answer quality."

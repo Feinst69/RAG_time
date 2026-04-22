@@ -27,7 +27,7 @@ class RelevanceJudge(dspy.Module):
         super().__init__()
         self.predictor = dspy.asyncify(dspy.ChainOfThought(RelevanceJudgeSignature))
 
-    async def forward(self, *, query: str, documents: list) -> RelevanceJudgement:
+    async def forward(self, query: str, documents: list) -> RelevanceJudgement:
         docs_text = "\n\n".join(str(d) for d in documents) if documents else "(no documents retrieved)"
         result = await self.predictor(query=query, documents=docs_text)
         return result.judgement
