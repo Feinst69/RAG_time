@@ -1,11 +1,13 @@
 from qdrant_client import QdrantClient, models as qdrant_models
+from pylate import models, rank
 from rag_time.config.settings import settings
 from rag_time.embeddings import EmbeddingsGenerator, SparseEmbeddingsGenerator
-from typing import Any
+from typing import Any, Optional
 
 client = QdrantClient(settings.qdrant_url)
 embedding_model = EmbeddingsGenerator(settings.embedding_model, max_length=settings.embedding_dimension)
 sparse_embedding_model = SparseEmbeddingsGenerator(settings.sparse_model)
+reranker = models.ColBERT(model_name_or_path=settings.reranker_model)
 
 def get_tickets_by_ids(collection_name: str, ids: list):
     return client.retrieve(
@@ -43,7 +45,7 @@ def create_filter(filter: dict):
 
 
 
-def rag_search(query_text: str, collection_name: str, filter: dict|None = None, method: str = "hybrid", limit: int = 3):
+def rag_search(query_text: str, collection_name: str, filter: dict = None, method: str = "hybrid", limit: int = 3) -> dict:
     if filter:
         filter = create_filter(filter)
     limit = limit * 4
@@ -103,5 +105,34 @@ def rag_search(query_text: str, collection_name: str, filter: dict|None = None, 
         limit=limit).points
     return clean_results(results)
 
+def rerank(query_text: str, results: dict) -> dict:
+    embeded_query = reranker.encode(
+        [query_text],
+        is_query=True,
+    )
+    documents = []
+    documents_ids = []
+
+    for key, val in results.items():
+        documents.append(val["subject"]+" "+val["body"])
+        documents_ids.append(key)
+
+    if not documents:
+        return []
+
+    embeded_documents = reranker.encode(
+        [documents],
+        is_query=False,
+    )
+
+    reranked_documents = rank.rerank(
+        documents_ids=[documents_ids],
+        queries_embeddings=embeded_query,
+        documents_embeddings=embeded_documents,
+    )[0]
+
+    for doc in reranked_documents:
+        results[doc["id"]]["score"] = doc["score"]
+    return sorted(results.items(), key=lambda item: item[1]["score"], reverse=True)
 
 

@@ -27,10 +27,7 @@ class Settings(BaseSettings):
     embedding_dimension: int = Field(128, env="EMBEDDING_DIMENSION")
     sparse_model: str = Field("Qdrant/bm25", env="SPARSE_MODEL")
     reranker_model: str = Field("mixedbread-ai/mxbai-edge-colbert-v0-32m", env="RERANKER_MODEL")
-
-    # LLM configuration
-    llm_model: str = "meta-llama/llama-3-8b-instruct"
-
+    
     # Search configuration
     top_k: int = Field(10, env="TOP_K", ge=1)
     hybrid_search_weight: float = Field(0.5, env="HYBRID_SEARCH_WEIGHT", ge=0, le=1)  # 0 = full text, 1 = vector only

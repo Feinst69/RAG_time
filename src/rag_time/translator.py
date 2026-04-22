@@ -5,7 +5,7 @@ from rag_time.data_loader import RetrievedTicketsDict
 
 def init_lm() -> dspy.LM:
     return dspy.LM(
-        #api_key=settings.openrouter_api_key,
+        api_key=settings.openrouter_api_key,
         model=settings.openrouter_model, 
         temperature=settings.openrouter_temperature,
         timeout=settings.openrouter_timeout
