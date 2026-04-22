@@ -1,4 +1,4 @@
-from qdrant_client import QdrantClient, models as qdrant_models 
+from qdrant_client import QdrantClient, models as qdrant_models
 from rag_time.config.settings import settings
 from rag_time.embeddings import EmbeddingsGenerator, SparseEmbeddingsGenerator
 from typing import Any
@@ -103,4 +103,5 @@ def rag_search(query_text: str, collection_name: str, filter: dict|None = None, 
         limit=limit).points
     return clean_results(results)
 
-    
+
+

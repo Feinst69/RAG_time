@@ -14,19 +14,19 @@ def init_lm() -> dspy.LM:
 class TicketTranslationSignature(dspy.Signature):
     """
     Translate only the subject, body and answer fields of each support ticket into the same language as the query.
-    The other fields including the language field must be kept unchanged. 
+    The other fields, including the language field, must be kept unchanged. 
     """
     query: str = dspy.InputField(desc="query in the target language")
-    tickets_entree: RetrievedTicketsDict = dspy.InputField(desc="original dictionary of support tickets")
-    tickets_sortie: RetrievedTicketsDict = dspy.OutputField(desc="dictionary of translated support tickets")
+    tickets_in: RetrievedTicketsDict = dspy.InputField(desc="original dictionary of support tickets")
+    tickets_out: RetrievedTicketsDict = dspy.OutputField(desc="dictionary of translated support tickets")
 
 
-def translate_tickets(query: str, tickets_entree: RetrievedTicketsDict) -> RetrievedTicketsDict:
+def translate_tickets(query: str, tickets_in: RetrievedTicketsDict) -> RetrievedTicketsDict:
     lm = init_lm()
     with dspy.context(lm=lm):
         translator = dspy.Predict(signature=TicketTranslationSignature)
-        tickets_sortie = translator(query=query, tickets_entree=tickets_entree)
-        return tickets_sortie
+        tickets_out = translator(query=query, tickets_in=tickets_in)
+        return tickets_out
 
 
 if __name__ == "__main__":
@@ -56,4 +56,4 @@ if __name__ == "__main__":
     data = RetrievedTicketsDict(root=data)
     query = "écran noir"
     tickets_traduits = translate_tickets(query, data)
-    print(tickets_traduits)
+    print(tickets_traduits.tickets_out.root)

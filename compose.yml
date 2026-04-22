@@ -25,6 +25,8 @@ services:
       dockerfile: search_api/Dockerfile
     env_file:
       - .env
+    volumes:
+      - ./hf_cache:/root/.cache/huggingface
     ports:
       - "8000:8000"
     depends_on:
@@ -35,5 +37,8 @@ services:
 networks:
   rag-time-net:
     driver: bridge
+
+volumes:
+  hf_cache:
 
     

@@ -23,9 +23,10 @@ class Settings(BaseSettings):
 
     # Embedding configuration
     chunk_size: int = Field(512, env="CHUNK_SIZE", ge=1)
-    embedding_model: str = Field("nomic-ai/nomic-embed-text-v1.5", env="EMBEDDING_MODEL")
-    embedding_dimension: int = Field(768, env="EMBEDDING_DIMENSION")
+    embedding_model: str = Field("mixedbread-ai/mxbai-edge-colbert-v0-17m", env="EMBEDDING_MODEL")
+    embedding_dimension: int = Field(128, env="EMBEDDING_DIMENSION")
     sparse_model: str = Field("Qdrant/bm25", env="SPARSE_MODEL")
+    reranker_model: str = Field("mixedbread-ai/mxbai-edge-colbert-v0-32m", env="RERANKER_MODEL")
 
     # LLM configuration
     llm_model: str = "meta-llama/llama-3-8b-instruct"
