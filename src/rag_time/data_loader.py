@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from typing import Any, Optional
 from pathlib import Path
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel, RootModel, field_serializer
 
 
 class DataLoader:
@@ -66,8 +66,6 @@ class DataLoader:
         return result_data
     
 
-
-
 class Ticket(BaseModel):
     """
     Représente un ticket de support avec ses métadonnées et embeddings.
@@ -110,6 +108,22 @@ class Ticket(BaseModel):
             else:
                 serialized.append(e)
         return serialized
+    
+class RetrievedTicket(BaseModel):
+    """
+    Représente un ticket de support avec ses métadonnées.
+    """
+    subject: str
+    body: str 
+    answer: str
+    type: str
+    queue: str
+    priority: str
+    language: str
+    
+
+class RetrievedTicketsDict(RootModel):
+    root: dict[str, RetrievedTicket]
 
 def stream_tickets(file_path: str):
     with open(file_path, 'r', encoding='utf-8') as f:
