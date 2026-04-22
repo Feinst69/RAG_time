@@ -10,6 +10,9 @@ class Settings(BaseSettings):
 
     # OpenRouter API
     openrouter_api_key: Optional[str] = Field(None, env="OPENROUTER_API_KEY")
+    openrouter_model: Optional[str] = Field(None, env="OPENROUTER_MODEL")
+    openrouter_temperature: float = Field(0.0, env="OPENROUTER_TEMPERATURE", ge=0.0)
+    openrouter_timeout: int = Field(30, env="OPENROUTER_TIMEOUT", ge=0)
 
     # Qdrant configuration
     qdrant_host: str = Field("localhost", env="QDRANT_HOST")
