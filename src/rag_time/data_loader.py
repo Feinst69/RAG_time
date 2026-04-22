@@ -113,6 +113,7 @@ class RetrievedTicket(BaseModel):
     """
     Représente un ticket de support avec ses métadonnées.
     """
+    score: float
     subject: str
     body: str 
     answer: str

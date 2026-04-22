@@ -54,6 +54,6 @@ if __name__ == "__main__":
     }
 
     data = RetrievedTicketsDict(root=data)
-    query = "écean noir"
+    query = "écran noir"
     tickets_traduits = translate_tickets(query, data)
     print(tickets_traduits)
