@@ -22,7 +22,7 @@ import dspy
 from dotenv import load_dotenv
 
 from rag_time.config.settings import settings
-from rag_time.retrieval import hybrid_search_with_models, clean_results
+from rag_time.retrieval import hybrid_search_with_models, clean_results, rerank_with_model
 from rag_time.dspy.config import DSPyConfig
 from rag_time.dspy.agents.query_rephraser import QueryRephraser
 from rag_time.dspy.agents.ticket_answer import generate_answer
@@ -251,12 +251,15 @@ async def _evaluate_combination(
         # ── Retrieval ────────────────────────────────────────────────────────
         raw = hybrid_search_with_models(query, collection_name, dense, sparse, limit=candidates)
         retrieved_docs_map: dict = clean_results(raw, collection_name=collection_name)
+        retrieved_docs_map = rerank_with_model(query, retrieved_docs_map, reranker)
+        # Truncate to k after reranking
+        retrieved_docs_map = dict(list(retrieved_docs_map.items())[:k])
         retrieved_ids: list = list(retrieved_docs_map.keys())
         retrieved_docs: list = list(retrieved_docs_map.values())
         # No ground-truth labels: set/dict stay empty → precision@k, recall@k, ndcg@k = 0
         relevant_docs_set: set = set()
         relevant_docs_scores: dict = {}
-        print(f"  [retrieval:{collection_name}] k={k} candidates={candidates} query='{query[:50]}...' → {len(retrieved_docs)} docs")
+        print(f"  [rerank:{reranker}] k={k} candidates={candidates} query='{query[:50]}...' → {len(retrieved_docs)} docs")
         for tid, doc in list(retrieved_docs_map.items())[:3]:
             subject = doc.get("subject", "")[:60]
             score = doc.get("score", "?")
@@ -295,7 +298,7 @@ async def _evaluate_combination(
                     answer = ""
                     llm_metrics = {"answer_quality": 0.0, "retrieval_relevance": 0.0, "retrieval_usage": 0.0}
                 q_result["llm_results"][llm_model] = {
-                    "answer": answer,
+                    "answer": answer.model_dump() if isinstance(answer, TicketResolution) else answer,
                     "metrics": llm_metrics,
                 }
 

@@ -100,6 +100,42 @@ def hybrid_search_tickets(query_text: str, collection_name: str, limit: int = 3)
 
 reranker = models.ColBERT(model_name_or_path=settings.reranker_model)
 
+_reranker_cache: dict[str, models.ColBERT] = {}
+
+
+def _get_reranker(model_name: str) -> models.ColBERT:
+    if model_name not in _reranker_cache:
+        print(f"  [retrieval] loading reranker model: {model_name}")
+        _reranker_cache[model_name] = models.ColBERT(model_name_or_path=model_name)
+    return _reranker_cache[model_name]
+
+
+def rerank_with_model(query_text: str, results: dict, reranker_model_name: str) -> dict:
+    """Rerank results dict using the specified ColBERT model. Returns a re-ordered dict."""
+    model = _get_reranker(reranker_model_name)
+    documents = []
+    documents_ids = []
+    for key, val in results.items():
+        documents.append((val.get("subject") or "") + " " + (val.get("body") or ""))
+        documents_ids.append(key)
+
+    if not documents:
+        return results
+
+    embedded_query = model.encode([query_text], is_query=True)
+    embedded_documents = model.encode([documents], is_query=False)
+
+    reranked = rank.rerank(
+        documents_ids=[documents_ids],
+        queries_embeddings=embedded_query,
+        documents_embeddings=embedded_documents,
+    )[0]
+
+    for doc in reranked:
+        results[doc["id"]]["score"] = doc["score"]
+
+    return dict(sorted(results.items(), key=lambda item: item[1]["score"], reverse=True))
+
 def get_tickets_by_ids(collection_name: str, ids: list):
     return client.retrieve(
         collection_name=collection_name,
