@@ -240,7 +240,7 @@ async def _evaluate_combination(
 
     for qa in qa_pairs:
         original_query: str = qa["question"]
-        reference_answer: str = qa["answer"]
+        reference_answer: str = qa.get("answer", "")
 
         # ── Query rephrasing ─────────────────────────────────────────────────
         if use_rephrasing:
@@ -256,9 +256,8 @@ async def _evaluate_combination(
         retrieved_docs_map = dict(list(retrieved_docs_map.items())[:k])
         retrieved_ids: list = list(retrieved_docs_map.keys())
         retrieved_docs: list = list(retrieved_docs_map.values())
-        # No ground-truth labels: set/dict stay empty → precision@k, recall@k, ndcg@k = 0
-        relevant_docs_set: set = set()
-        relevant_docs_scores: dict = {}
+        relevant_docs_set: set = set(qa.get("relevant_ids", []))
+        relevant_docs_scores: dict = {rid: 1.0 for rid in relevant_docs_set}
         print(f"  [rerank:{reranker}] k={k} candidates={candidates} query='{query[:50]}...' → {len(retrieved_docs)} docs")
         for tid, doc in list(retrieved_docs_map.items())[:3]:
             subject = doc.get("subject", "")[:60]

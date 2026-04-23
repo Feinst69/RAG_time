@@ -13,26 +13,13 @@ retrieval:
     - 100
 
   q_&_a_pairs:
-    - question: "My phone won't start"
-      answer: "Try charging the phone for at least 30 minutes, then press and hold the power button. If it still does not start, force restart it or check whether the battery, charger, or screen may be faulty."
-    - question: "My phone does not turn on after charging"
-      answer: "Make sure the charging cable, adapter, and power outlet are working. Leave the phone connected to power for at least 30 minutes. If the screen stays black, try a force restart."
-    # - question: "How do I force restart my phone?"
-    #   answer: "The exact method depends on the model, but it usually involves holding the power button alone or the power button together with a volume button for several seconds."
-    # - question: "My phone shows a black screen but seems warm"
-    #   answer: "This may mean the phone is powered on but the display is not responding. Try a force restart, then connect it to a charger. If the issue continues, the screen or internal hardware may need repair."
-    # - question: "My phone won't start after falling"
-    #   answer: "A drop may have damaged the battery, display, or internal components. Try charging it and performing a force restart. If it still does not start, professional repair is recommended."
-    # - question: "My phone won't start after getting wet"
-    #   answer: "Turn it off if possible and do not try charging it immediately. Let it dry completely before attempting to power it on. If it still does not start, internal water damage may require service."
-    # - question: "My phone is stuck on the startup logo"
-    #   answer: "This may indicate a software problem. Try forcing a restart first. If that does not help, recovery mode or a factory reset may be needed."
-    # - question: "My phone vibrates but the screen stays off"
-    #   answer: "The phone may be turning on, but the display could be damaged or unresponsive. Try adjusting brightness, restarting the device, or connecting it to a computer to confirm whether it is recognized."
-    # - question: "My phone battery may be dead and it won't start"
-    #   answer: "Charge the phone with a known working cable and adapter for at least 30 minutes. If there is still no sign of power, the battery or charging port may be defective."
-    # - question: "What should I check first if my phone won't start?"
-    #   answer: "First check the charger, cable, outlet, and battery level. Then try charging for 30 minutes and perform a force restart. If nothing changes, look for signs of physical or water damage."
+    - question: "Hello, I am having audio issues with my computer. The sound is very low and distorted. I have tried adjusting the volume and checking the audio settings, but it hasn't helped. Can you please assist me in resolving this issue?"                                                           
+      relevant_ids:                                                                              
+        - "6089b1ac-f859-5c11-acf7-3ad32a77b49c"   
+    - question: "Hello, I am experiencing connectivity issues with the cloud services for my phone"
+      relevant_ids:
+        - "6b39077b-17e2-5a89-98cb-e03f64c72cea"
+        - "4c6c61ab-3b04-56f6-b3fd-782ccf6b59b3"
 
   retrieval_models:
     # PyLate ColBERT model used for dense retrieval (mean-pooled token embeddings)

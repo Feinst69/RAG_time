@@ -39,7 +39,10 @@ class DataLoader:
         if not Path(self.dataset_path).exists():
             raise FileNotFoundError(f"Fichier non trouvé: {self.dataset_path}")
 
+        all_columns = pd.read_csv(self.dataset_path, nrows=0).columns.tolist()
         columns = ["subject", "body", "answer", "type", "queue", "priority", "language"]
+        if "id" in all_columns:
+            columns = ["id"] + columns
 
         if limit:
             df = pd.read_csv(self.dataset_path, usecols=columns, nrows=limit)
