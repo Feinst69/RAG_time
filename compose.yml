@@ -37,9 +37,3 @@ services:
 networks:
   rag-time-net:
     driver: bridge
-
-volumes:
-  hf_cache:
-
-    
-      - QDRANT__LOG_LEVEL=INFO

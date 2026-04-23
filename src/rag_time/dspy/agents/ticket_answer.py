@@ -1,9 +1,54 @@
-import dspy
+import os
 
+import dspy
+from dotenv import load_dotenv
+
+from rag_time.dspy.config import DSPyConfig
 from rag_time.dspy.objects.ticket_resolution import TicketResolution
 
 
-async def generate_answer(query: str, documents: str, streaming: bool = True) -> TicketResolution | str:
+def _setup_lm() -> None:
+    """Configure DSPy global LM from config + env if not already set."""
+    if dspy.settings.lm is not None:
+        return
+    load_dotenv()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY missing – set it in .env")
+    config = DSPyConfig()
+    dspy.configure(lm=dspy.LM(
+        model=config.lm_model,
+        api_base="https://openrouter.ai/api/v1",
+        api_key=api_key,
+    ))
+
+
+def _format_payload(payload: dict) -> list[str]:
+    """Extract and format ticket documents from the API response payload."""
+    docs = []
+    for ticket_id, ticket in payload.items():
+        parts = [f"[Ticket #{ticket_id}]"]
+        if subject := ticket.get("subject"):
+            parts.append(f"Subject: {subject}")
+        if body := ticket.get("body"):
+            parts.append(f"Body: {body}")
+        if answer := ticket.get("answer"):
+            parts.append(f"Previous answer: {answer}")
+        if ticket.get("type") or ticket.get("queue") or ticket.get("priority"):
+            parts.append(f"Type: {ticket.get('type')} | Queue: {ticket.get('queue')} | Priority: {ticket.get('priority')}")
+        docs.append("\n".join(parts))
+    return docs
+
+
+async def answer_from_api_response(query: str, api_response: dict, streaming: bool = False) -> TicketResolution | str:
+    """Production entry point: accepts the full API JSON response, extracts documents, generates answer."""
+    _setup_lm()
+    payload = api_response.get("payload", api_response)
+    documents = _format_payload(payload)
+    return await generate_answer(query=query, documents=documents, streaming=streaming)
+
+
+async def generate_answer(query: str, documents: list[str] | str, streaming: bool = True) -> TicketResolution | str:
     """Generate a structured resolution from retrieved ticket documents.
 
     Args:
@@ -15,11 +60,12 @@ async def generate_answer(query: str, documents: str, streaming: bool = True) ->
     Returns:
         TicketResolution (non-streaming) or raw answer string (streaming).
     """
+    docs_str = "\n\n".join(documents) if isinstance(documents, list) else documents
     writer_module = dspy.ChainOfThought(TicketAnswerSignature)
 
     if not streaming:
         writer = dspy.asyncify(writer_module)
-        result = await writer(query=query, documents=documents)
+        result = await writer(query=query, documents=docs_str)
         return result.resolution
 
     # Streaming path: field-level streaming not yet supported for Pydantic output fields,
@@ -28,7 +74,7 @@ async def generate_answer(query: str, documents: str, streaming: bool = True) ->
     plain_module = dspy.ChainOfThought(TicketAnswerSignatureStreaming)
     stream_writer = dspy.streamify(plain_module, stream_listeners=[listener])
     parts: list[str] = []
-    async for chunk in stream_writer(query=query, documents=documents):
+    async for chunk in stream_writer(query=query, documents=docs_str):
         if hasattr(chunk, "chunk") and chunk.chunk:
             parts.append(chunk.chunk)
     return "".join(parts)
