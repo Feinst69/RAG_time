@@ -1,0 +1,16 @@
+faiss-cpu>=1.13.2
+langchain>=1.2.15
+langchain-community>=0.4.1
+langchain-huggingface>=1.2.1
+langchain-openai>=1.1.12
+langchain-openrouter>=0.2.1
+langchain-text-splitters>=1.1.2
+torch>=2.2.0
+pylate>=1.4.0
+qdrant-client>=1.17.1
+fastembed>=0.8.0
+pandas
+pydantic
+pydantic-settings
+tqdm
+setuptools<81

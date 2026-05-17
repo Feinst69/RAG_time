@@ -4,9 +4,19 @@ from rag_time.data_loader import RetrievedTicketsDict
 
 
 def init_lm() -> dspy.LM:
+    if not settings.openrouter_api_key:
+        raise RuntimeError("OPENROUTER_API_KEY is required to translate tickets")
+
+    model = settings.openrouter_model.strip()
+    if not model:
+        raise RuntimeError("OPENROUTER_MODEL is required to translate tickets")
+    if not model.startswith("openrouter/"):
+        model = f"openrouter/{model}"
+
     return dspy.LM(
         api_key=settings.openrouter_api_key,
-        model=settings.openrouter_model, 
+        api_base=settings.openrouter_api_base,
+        model=model,
         temperature=settings.openrouter_temperature,
         timeout=settings.openrouter_timeout
     )

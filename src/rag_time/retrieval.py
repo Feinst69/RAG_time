@@ -8,6 +8,13 @@ client = QdrantClient(settings.qdrant_url)
 embedding_model = EmbeddingsGenerator(settings.embedding_model, max_length=settings.embedding_dimension)
 sparse_embedding_model = SparseEmbeddingsGenerator(settings.sparse_model)
 reranker = models.ColBERT(model_name_or_path=settings.reranker_model)
+FILTER_FIELDS = ("language", "priority", "queue", "type")
+
+
+def as_ticket_dict(ticket: Any) -> dict:
+    if hasattr(ticket, "model_dump"):
+        return ticket.model_dump()
+    return ticket
 
 def get_tickets_by_ids(collection_name: str, ids: list):
     return client.retrieve(
@@ -42,6 +49,34 @@ def create_filter(filter: dict):
             )
         )
     return qdrant_models.Filter(must=filters)
+
+
+def get_filter_options(collection_name: str, page_size: int = 256) -> dict[str, list[str]]:
+    options = {field: set() for field in FILTER_FIELDS}
+    next_offset = None
+
+    while True:
+        points, next_offset = client.scroll(
+            collection_name=collection_name,
+            with_vectors=False,
+            with_payload=qdrant_models.PayloadSelectorInclude(include=list(FILTER_FIELDS)),
+            limit=page_size,
+            offset=next_offset,
+        )
+
+        for point in points:
+            for field in FILTER_FIELDS:
+                value = point.payload.get(field)
+                if value is not None and value != "":
+                    options[field].add(str(value))
+
+        if next_offset is None:
+            break
+
+    return {
+        field: sorted(values, key=lambda item: item.lower())
+        for field, values in options.items()
+    }
 
 
 
@@ -112,13 +147,16 @@ def rerank(query_text: str, results: dict) -> dict:
     )
     documents = []
     documents_ids = []
+    normalized_results = {}
 
     for key, val in results.items():
+        val = as_ticket_dict(val)
+        normalized_results[key] = val
         documents.append(val["subject"]+" "+val["body"])
         documents_ids.append(key)
 
     if not documents:
-        return []
+        return {}
 
     embeded_documents = reranker.encode(
         [documents],
@@ -132,7 +170,5 @@ def rerank(query_text: str, results: dict) -> dict:
     )[0]
 
     for doc in reranked_documents:
-        results[doc["id"]]["score"] = doc["score"]
-    return sorted(results.items(), key=lambda item: item[1]["score"], reverse=True)
-
-
+        normalized_results[doc["id"]]["score"] = doc["score"]
+    return dict(sorted(normalized_results.items(), key=lambda item: item[1]["score"], reverse=True))

@@ -10,7 +10,8 @@ class Settings(BaseSettings):
 
     # OpenRouter API
     openrouter_api_key: Optional[str] = Field(None, env="OPENROUTER_API_KEY")
-    openrouter_model: Optional[str] = Field(None, env="OPENROUTER_MODEL")
+    openrouter_model: str = Field("openrouter/openai/gpt-4.1-nano", env="OPENROUTER_MODEL")
+    openrouter_api_base: str = Field("https://openrouter.ai/api/v1", env="OPENROUTER_API_BASE")
     openrouter_temperature: float = Field(0.0, env="OPENROUTER_TEMPERATURE", ge=0.0)
     openrouter_timeout: int = Field(30, env="OPENROUTER_TIMEOUT", ge=0)
 

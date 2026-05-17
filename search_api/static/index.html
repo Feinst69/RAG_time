@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAG Time Console</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <h1>RAG TIME</h1>
+        </div>
+        <div class="hero-status">
+          <div class="status-card status-inline">
+            <span class="label">Collection</span>
+            <strong id="collection-name">Chargement...</strong>
+          </div>
+          <div class="status-card status-inline">
+            <span class="label">API</span>
+            <strong id="api-status">Vérification...</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="control-panel">
+          <div class="panel-heading">
+            <p class="eyebrow">Recherche</p>
+            <h2>Construit une requête.</h2>
+          </div>
+
+          <form id="search-form">
+            <label class="field field-query">
+              <span>Question</span>
+              <textarea
+                id="query"
+                name="query"
+                rows="4"
+                placeholder="Exemple : comment réinitialiser un mot de passe sur le portail client ?"
+                required
+              ></textarea>
+            </label>
+
+            <div class="toggle-grid">
+              <div class="toggle-block">
+                <span class="field-label">Mode de recherche</span>
+                <div id="search-mode-switch" class="pill-switch">
+                  <button type="button" class="pill active" data-target="search-mode" data-value="hybrid">Hybride</button>
+                  <button type="button" class="pill" data-target="search-mode" data-value="semantic">Sémantique</button>
+                  <button type="button" class="pill" data-target="search-mode" data-value="lexical">Lexical</button>
+                </div>
+                <input id="search-mode" name="mode" type="hidden" value="hybrid" />
+              </div>
+
+              <div class="toggle-block">
+                <span class="field-label">Sortie API</span>
+                <div class="output-mode-layout">
+                  <div id="output-mode-switch" class="pill-switch">
+                    <button type="button" class="pill active" data-target="output-mode" data-value="raw">Brut</button>
+                    <button type="button" class="pill" data-target="output-mode" data-value="translated">Traduit</button>
+                    <button type="button" class="pill" data-target="output-mode" data-value="reranked">Reranké</button>
+                    <button type="button" class="pill" data-target="output-mode" data-value="reranked-translated">Rerank + traduit</button>
+                    <button type="button" class="pill" data-target="output-mode" data-value="translated-reranked">Traduit + rerank</button>
+                  </div>
+                </div>
+                <input id="output-mode" name="output_mode" type="hidden" value="raw" />
+              </div>
+            </div>
+
+            <section class="filters-shell">
+              <div class="filters-heading">
+                <p class="eyebrow">Filtres</p>
+                <p id="filters-status" class="filters-status"></p>
+              </div>
+
+              <div class="field-grid">
+                <label class="field select-card">
+                  <span>Langue</span>
+                  <div class="select-wrap">
+                    <select id="language" name="language">
+                      <option value="">Chargement...</option>
+                    </select>
+                    <span class="select-caret" aria-hidden="true"></span>
+                  </div>
+                </label>
+
+                <label class="field select-card">
+                  <span>Priorité</span>
+                  <div class="select-wrap">
+                    <select id="priority" name="priority">
+                      <option value="">Chargement...</option>
+                    </select>
+                    <span class="select-caret" aria-hidden="true"></span>
+                  </div>
+                </label>
+
+                <label class="field select-card">
+                  <span>Queue</span>
+                  <div class="select-wrap">
+                    <select id="queue" name="queue">
+                      <option value="">Chargement...</option>
+                    </select>
+                    <span class="select-caret" aria-hidden="true"></span>
+                  </div>
+                </label>
+
+                <label class="field select-card">
+                  <span>Type</span>
+                  <div class="select-wrap">
+                    <select id="type" name="type">
+                      <option value="">Chargement...</option>
+                    </select>
+                    <span class="select-caret" aria-hidden="true"></span>
+                  </div>
+                </label>
+              </div>
+            </section>
+
+            <div id="active-filters" class="active-filters"></div>
+
+            <div class="actions">
+              <button id="submit-button" type="submit">Lancer la recherche</button>
+              <button id="synthesize-button" type="button" class="synthesis-action">Synthétiser les résultats</button>
+              <button id="reset-button" type="button" class="ghost">Réinitialiser</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="results-panel">
+          <div class="results-header">
+            <div>
+              <p class="eyebrow">Résultats</p>
+              <h2 id="results-title">Aucune recherche lancée</h2>
+            </div>
+            <div class="status-stack status-stack-compact">
+              <div class="mini-card">
+                <span class="label">Pipeline</span>
+                <strong id="result-flags">Brut</strong>
+              </div>
+            </div>
+          </div>
+
+          <div id="feedback" class="feedback" aria-live="polite"></div>
+          <article id="synthesis-card" class="synthesis-card hidden" aria-live="polite">
+            <div class="result-topline">
+              <span class="result-score">Synthèse</span>
+            </div>
+            <div id="synthesis-answer" class="synthesis-answer"></div>
+          </article>
+          <div id="results" class="results-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="result-template">
+      <article class="result-card">
+        <div class="result-topline">
+          <span class="result-score"></span>
+          <span class="result-id"></span>
+        </div>
+        <h3 class="result-subject"></h3>
+        <p class="result-body"></p>
+        <p class="result-answer"></p>
+        <div class="tag-row"></div>
+      </article>
+    </template>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>

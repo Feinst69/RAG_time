@@ -9,8 +9,16 @@ RUN pip install -U pip
 RUN pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cpu \
     torch==2.9.0
-RUN pip install --no-cache-dir git+https://github.com/Feinst69/RAG_time.git@qdrant_rag
-COPY search_api/main.py .
+
+# Copy the local project so the container runs the same code as the workspace.
+COPY pyproject.toml README.md ./
+COPY src ./src
+COPY scripts ./scripts
+COPY search_api ./search_api
+
+RUN pip install --no-cache-dir .
+
+WORKDIR /app/search_api
 
 EXPOSE 8000
 

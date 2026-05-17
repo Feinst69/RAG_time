@@ -21,7 +21,7 @@ class DataLoader:
         """
         self.dataset_path = dataset_path
 
-    def load(self, limit: int = None) -> pd.DataFrame:
+    def load(self, limit: int = None) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Charge les données depuis un fichier CSV.
 
@@ -30,7 +30,7 @@ class DataLoader:
             limit: Nombre maximum de lignes à charger
 
         Returns:
-            DataFrame contenant les tickets
+            Tuple contenant (DataFrame valid tickets, DataFrame DLQ tickets)
         """
 
         if not self.dataset_path:
@@ -48,7 +48,7 @@ class DataLoader:
         
         return self._preprocess(df)
 
-    def _preprocess(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _preprocess(self, df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         Prétraitement des données.
 
@@ -56,14 +56,19 @@ class DataLoader:
             df: DataFrame brut
 
         Returns:
-            DataFrame nettoyé et standardisé
+            Tuple contenant (DataFrame valid, DataFrame dlq)
         """
-        result_data = df.dropna(subset=["body", "answer"])\
-                        .reset_index(drop=True)
+        # Identify tickets with missing body or answer
+        invalid_mask = df["body"].isna() | df["answer"].isna()
         
-        result_data.fillna("", inplace=True)
+        # Isolate invalid tickets for the DLQ
+        dlq_df = df[invalid_mask].copy()
+        
+        # Keep only valid tickets
+        valid_df = df[~invalid_mask].copy().reset_index(drop=True)
+        valid_df.fillna("", inplace=True)
 
-        return result_data
+        return valid_df, dlq_df
     
 
 class Ticket(BaseModel):

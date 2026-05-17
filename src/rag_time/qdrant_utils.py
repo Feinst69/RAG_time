@@ -13,6 +13,10 @@ def create_collection(name: str, vector_size: int):
         name (str): Le nom de la collection à créer
         vector_size (int): La dimension des vecteurs à stocker
     """
+    if client.collection_exists(name):
+        print(f"Collection '{name}' already exists, skipping creation.")
+        return
+
     client.create_collection(
         collection_name=name,
         vectors_config={
@@ -74,4 +78,8 @@ def upload_tickets_to_qdrant(jsonl_path: str):
     print(f"All tickets uploaded to Qdrant: {i+1} tickets processed.")
 
 def delete_collection(name: str):
+    if not client.collection_exists(name):
+        print(f"Collection '{name}' does not exist, nothing to delete.")
+        return
+
     client.delete_collection(collection_name=name)

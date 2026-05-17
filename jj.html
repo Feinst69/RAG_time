@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schéma API - RAG-time</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Lato', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .schema-container {
+            background: #ffffff;
+            width: 1000px;
+            padding: 50px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 6px solid #2563eb;
+        }
+
+        /* Colonne Interface Web */
+        .frontend-box {
+            background: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 30px;
+            width: 350px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+
+        .box-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .box-title i {
+            color: #2563eb;
+            font-size: 26px;
+        }
+
+        .ui-mockup {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .ui-element {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ui-element.search { background: #eff6ff; border-color: #bfdbfe; color: #1e3a8a; font-weight: 600; }
+
+        .ui-results {
+            margin-top: 15px;
+            border-top: 2px dashed #cbd5e1;
+            padding-top: 15px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .ui-results span { display: block; margin-bottom: 5px; }
+        .ui-results strong { color: #0f172a; }
+
+        /* Flèches de communication */
+        .communication {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            color: #94a3b8;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .comm-arrow {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .comm-arrow.request { color: #2563eb; }
+        .comm-arrow.response { color: #10b981; }
+        
+        .arrow-line {
+            width: 100px;
+            height: 2px;
+            background-color: currentColor;
+            position: relative;
+        }
+
+        .request .arrow-line::after {
+            content: ''; position: absolute; right: 0; top: -4px;
+            border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 8px solid currentColor;
+        }
+
+        .response .arrow-line::before {
+            content: ''; position: absolute; left: 0; top: -4px;
+            border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-right: 8px solid currentColor;
+        }
+
+        /* Colonne API FastAPI */
+        .backend-box {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 30px;
+            width: 420px;
+            box-shadow: 0 10px 15px rgba(0,0,0,0.05);
+        }
+
+        .endpoint {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .method {
+            padding: 10px 15px;
+            font-weight: 700;
+            color: white;
+            width: 70px;
+            text-align: center;
+        }
+
+        .method.get { background-color: #0ea5e9; } /* Light Blue for GET */
+        .method.post { background-color: #10b981; } /* Emerald Green for POST */
+
+        .path {
+            padding: 10px 15px;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .path span { color: #64748b; font-weight: 400; }
+
+        .api-note {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #64748b;
+            text-align: center;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="schema-container">
+    
+    <div class="frontend-box">
+        <div class="box-title">
+            <i class="fa-solid fa-laptop-code"></i> Interface Web
+        </div>
+        
+        <div class="ui-mockup">
+            <div class="ui-element search">
+                <i class="fa-solid fa-magnifying-glass"></i> Barre de recherche
+            </div>
+            <div class="ui-element">
+                <i class="fa-solid fa-sliders"></i> Mode: Lexical / Semantic / Hybrid
+            </div>
+            <div class="ui-element">
+                <i class="fa-solid fa-filter"></i> Filtres dynamiques
+            </div>
+            
+            <div class="ui-results">
+                <span><i class="fa-solid fa-reply-all"></i> Affichage des retours :</span>
+                <strong>Scores de pertinence</strong>
+                <strong>Sujets & Corps des tickets</strong>
+                <strong>Réponses générées / extraites</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="communication">
+        <div class="comm-arrow request">
+            <span>Requêtes HTTP</span>
+            <div class="arrow-line"></div>
+        </div>
+        <div class="comm-arrow response">
+            <div class="arrow-line"></div>
+            <span>JSON Payload</span>
+        </div>
+    </div>
+
+    <div class="backend-box">
+        <div class="box-title">
+            <i class="fa-solid fa-server"></i> Endpoints FastAPI
+        </div>
+        
+        <div class="endpoint">
+            <div class="method get">GET</div>
+            <div class="path">/health <span>&</span> /filters</div>
+        </div>
+
+        <div class="endpoint">
+            <div class="method post">POST</div>
+            <div class="path">/support_tickets</div>
+        </div>
+
+        <div class="endpoint">
+            <div class="method post">POST</div>
+            <div class="path">/support_tickets<span>/translated</span></div>
+        </div>
+
+        <div class="endpoint">
+            <div class="method post">POST</div>
+            <div class="path">/support_tickets<span>/reranked</span></div>
+        </div>
+
+        <div class="endpoint">
+            <div class="method post">POST</div>
+            <div class="path"><span>/.../</span>reranked/translated</div>
+        </div>
+
+        <div class="api-note">
+            L'architecture modulaire permet de composer<br>les pipelines selon les besoins du client.
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

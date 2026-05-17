@@ -6,7 +6,7 @@ services:
       - "6333:6333" # API HTTP 
       - "6334:6334" # API gRPC
     volumes:
-      - ./qdrant_storage:/qdrant/storage
+      - qdrant_storage:/qdrant/storage
     environment:
       - QDRANT__SERVICE__ENABLE_STATIC_CONTENT=1 # Active l'interface Web
       - QDRANT__LOG_LEVEL=INFO
@@ -24,7 +24,7 @@ services:
       context: .
       dockerfile: search_api/Dockerfile
     env_file:
-      - .env
+      - .env.docker
     volumes:
       - ./hf_cache:/root/.cache/huggingface
     ports:
@@ -36,9 +36,10 @@ services:
       - rag-time-net
 networks:
   rag-time-net:
+    name: rag-time-net
     driver: bridge
 
 volumes:
   hf_cache:
-
+  qdrant_storage:
     

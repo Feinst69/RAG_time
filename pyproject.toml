@@ -33,6 +33,7 @@ rag_time = { editable = true, path = "." }
 dev = [
     "ipykernel>=7.2.0",
     "notebook>=7.5.5",
+    "pytest>=9.0.2",
 ]
 
 
@@ -47,5 +48,6 @@ include = ["rag_time*", "scripts*"]
 
 [project.scripts]
 rag-embed = "scripts.embed_data:main"
+rag-embed-small = "scripts.embed_data_small:main"
 rag-upload = "scripts.qdrant_upload:main"
 rag-query = "scripts.retrieve:main"
