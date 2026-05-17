@@ -191,6 +191,7 @@ function clearSynthesis() {
   synthesisAnswer.textContent = "";
   synthesisCard.classList.add("hidden");
   synthesisCard.classList.remove("error");
+  synthesisCard.classList.remove("loading");
 }
 
 function renderResults(items) {
@@ -241,7 +242,12 @@ function renderSynthesis(answer, tone = "") {
 
   synthesisCard.classList.remove("hidden");
   synthesisCard.classList.toggle("error", tone === "error");
+  synthesisCard.classList.toggle("loading", tone === "loading");
   renderMarkdownLite(synthesisAnswer, normalized);
+
+  if (tone === "loading" || tone === "error") {
+    synthesisCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function endpointForOutputMode(mode) {
@@ -388,12 +394,17 @@ form.addEventListener("submit", async (event) => {
 });
 
 synthesizeButton.addEventListener("click", async () => {
+  console.info("Synthesis button clicked");
+
   if (synthesisInProgress) {
     return;
   }
 
+  setFeedback("Préparation de la synthèse...", "");
+
   const query = currentRetrievedQuery || queryInput.value.trim();
   if (!query || !currentRetrievedPayload || !Object.keys(currentRetrievedPayload).length) {
+    renderSynthesis("Lance d'abord une recherche avant de synthétiser.", "error");
     setFeedback("Lance d'abord une recherche avant de synthétiser.", "error");
     return;
   }
@@ -401,6 +412,7 @@ synthesizeButton.addEventListener("click", async () => {
   synthesisInProgress = true;
   synthesizeButton.disabled = true;
   synthesizeButton.textContent = "Synthèse en cours...";
+  renderSynthesis("Synthèse en cours...", "loading");
   setFeedback("Synthèse des résultats affichés en cours...", "");
 
   try {

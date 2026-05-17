@@ -249,6 +249,14 @@ def test_synthesize_existing_endpoint_does_not_search(api_client):
     ]
 
 
+def test_detect_query_language_prefers_french_for_french_queries():
+    sys.modules.pop("rag_time.synthesizer", None)
+    from rag_time.synthesizer import detect_query_language
+
+    assert detect_query_language("problème écran tactile") == "French"
+    assert detect_query_language("comment reparer un ecran tactile") == "French"
+
+
 @pytest.mark.parametrize("mode", ["semantic", "lexical", "hybrid"])
 def test_reranked_then_translated_endpoint_uses_expected_order(api_client, mode):
     client, calls = api_client

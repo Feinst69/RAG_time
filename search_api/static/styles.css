@@ -379,6 +379,11 @@ button:disabled {
   border-color: rgba(242, 142, 161, 0.24);
 }
 
+.synthesis-card.loading {
+  background: rgba(191, 212, 246, 0.08);
+  border-color: rgba(191, 212, 246, 0.24);
+}
+
 .result-topline {
   display: flex;
   justify-content: space-between;
